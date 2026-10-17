@@ -1,59 +1,101 @@
-Renderer Guide
+# SOSA Graphics — Renderer Guide
 
-files:
-    - main.cpp - window, shaders, geometry, projection, and main loop
-    - Renderer.h, Renderer.cpp - shapes, transformations, and mouse conversion.
-    - TextRenderer.h, TextRenderer.cpp - text and number drawing
-    - ExampleScene.h, ExampleScene.cpp - working examples to follow
-    - CMakeLists.txt - source files and library configuration
+## Files
 
-build and run:
-run these commands from the project folder
-for macOS 
-    cmake -S . -B build
-    cmake --build build
-    ./build/OpenGLStarter
+- `main.cpp` — window, shaders, geometry, projection, and main loop.
+- `Renderer.h`, `Renderer.cpp` — shapes, transformations, and mouse conversion.
+- `TextRenderer.h`, `TextRenderer.cpp` — text and number drawing.
+- `ExampleScene.h`, `ExampleScene.cpp` — working examples.
+- `CMakeLists.txt` — source files and library configuration.
 
-for windows ->
-    cmake -S . -B build
-    cmake --build build
-    .\build\OpenGLStarter.exe
+## Build and Run
 
-    If using Visual Studio’s build system, the executable is usually in the Debug folder. Use this launch command instead:
+Run these commands from the project folder. Each teammate builds locally.
 
-    .\build\Debug\OpenGLStarter.exe
+### macOS
 
+```bash
+cmake -S . -B build
+cmake --build build && ./build/OpenGLStarter
+```
 
-using the renderer:
+### Windows — Visual Studio
 
-include the headers your module needs in the .cpp file:
-    #include "Renderer.h"
-    #include "TextRenderer.h"
+```powershell
+cmake -S . -B build
+cmake --build build --config Debug
+.\build\Debug\OpenGLStarter.exe
+```
 
-set a color before drawing, for example:
-    glUniform3f(colorLocation, 1.0f, 0.0f, 0.0f);
-    drawRectangle(transformLocation, 0.0f, 0.0f, 0.4f, 0.2f); 
+For MinGW or Ninja builds, the executable is usually:
 
-available functions:
-    - drawRectangle - center, full width/height, optional rotation.
-    - drawCircle - center, radius, and geometry range.
-    - drawTriangle - local-origin position, width/height, geometry range, optional rotation.
-    - drawDigit, drawNumber, drawText - top-left position and cell size. text supports uppercase letters, digits, and spaces; numbers must be nonnegative.
-    - mouseToWorld - converts cursor position into world coordinates; returns whether conversion succeeded.
+```powershell
+.\build\OpenGLStarter.exe
+```
 
-follow ExampleScene.cpp for complete drawing calls. pass the required uniform locations and geometry indices from main.cpp into your module
+Save and rebuild after changing code. Launch only after a successful build.
 
-where to implement your part (these are just suggestions):
-    1. renderer -> Renderer.h, Renderer.cpp, TextRenderer.h, TextRenderer.cpp
-    2. Environment and lanes -> Environment.h, Environment.cpp
-    3. Menus and HUD -> UI.h, UI.cpp
-    4. Cutscene and game flow -> Cutscene.h, Cutscene.cpp, Game.h, Game.cpp
+## Using the Renderer
 
-create your module files, declare functions in the header (.h) and implement them in the .cpp.
+Include the headers your module needs:
 
-add each new .cpp to add_executable(...) in CMakeLists.txt. 
+```cpp
+#include "Renderer.h"
+#include "TextRenderer.h"
+```
 
-in main.cpp, call the active scene's drawing functions after glBindVertexArray(VAO) and before glfwSwapBuffers(window).
+Set a color before drawing:
 
-find const bool showExamples = true; immediately before the main render loop in main.cpp. set it to true to display the examples, or false to hide the demonstrations when integrating the actual scenes.
+```cpp
+glUniform3f(colorLocation, 1.0f, 0.0f, 0.0f);
+drawRectangle(transformLocation, 0.0f, 0.0f, 0.4f, 0.2f);
+```
 
+### Available Functions
+
+| Function | Parameters / behavior |
+|---|---|
+| `drawRectangle` | Center, full width/height, optional rotation in degrees |
+| `drawCircle` | Center, radius, and geometry range |
+| `drawTriangle` | Local-origin position, width/height, geometry start, optional rotation |
+| `drawDigit`, `drawNumber`, `drawText` | Top-left position and cell size |
+| `mouseToWorld` | Cursor position converted to world coordinates; returns success |
+
+Text supports uppercase letters, digits, and spaces. Numbers must be nonnegative.
+
+Follow `ExampleScene.cpp` for complete calls. Pass the required uniform locations and geometry indices from `main.cpp` into your module.
+
+### Coordinates and Drawing Order
+
+- Screen center is `(0, 0)`.
+- Positive X goes right; positive Y goes up.
+- The central square from −1 to +1 stays visible when resizing.
+- Draw backgrounds first, characters next, and HUD/text last.
+- Later shapes cover earlier shapes.
+
+## Module Organization
+
+| Part | Suggested files |
+|---|---|
+| Rendering | `Renderer.h/.cpp`, `TextRenderer.h/.cpp` |
+| Environment and lanes | `Environment.h/.cpp` |
+| Menus and HUD | `UI.h/.cpp` |
+| Cutscene and game flow | `Cutscene.h/.cpp`, `Game.h/.cpp` |
+
+Declare functions in headers and implement them in `.cpp` files.
+
+Add each new `.cpp` to `add_executable(...)` in `CMakeLists.txt`.
+
+Use the existing window and render loop. In `main.cpp`, call scene drawing functions after `glBindVertexArray(VAO)` and before `glfwSwapBuffers(window)`.
+
+## Examples
+
+Find this immediately before the render loop in `main.cpp`:
+
+```cpp
+const bool showExamples = true;
+```
+
+Set it to `false` to hide the demonstrations when integrating actual scenes.
+
+Coordinate changes to shared files and function parameters with the team.
