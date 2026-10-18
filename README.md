@@ -99,3 +99,89 @@ const bool showExamples = true;
 Set it to `false` to hide the demonstrations when integrating actual scenes.
 
 Coordinate changes to shared files and function parameters with the team.
+
+---
+
+## Menus & HUD Module (`UI.h` / `UI.cpp`) — Member 3
+
+Implemented using the existing `Renderer` and `TextRenderer` utilities with composite multi-primitive shapes matching our **Kitchen Countertop (Cleaning Detergents vs. Insects)** theme.
+
+### 1. Shared Game States & Variables (`UI.h`)
+
+```cpp
+enum GameState {
+    STATE_MAIN_MENU = 0,
+    STATE_CUTSCENE  = 1,
+    STATE_PLAYING   = 2,
+    STATE_PAUSED    = 3,
+    STATE_WON       = 4,
+    STATE_LOST      = 5
+};
+
+const int MELEE_COST   = 10; // Fly Swatter (Melee)
+const int RANGED_COST  = 40; // Spray Bottle (Long Range)
+const int DEFENSE_COST = 60; // Sticky Sheet (Defense)
+
+extern int currentGameState; // Starts at STATE_MAIN_MENU
+extern int collectibles;     // Starts at 30 coins (enough for 3 Melee units)
+extern int selectedCard;     // -1 = none, 0 = Melee, 1 = Ranged, 2 = Defense
+```
+
+### 2. Implemented Menus
+
+- **Main Menu (`drawMainMenu`):**
+  - Displays the kitchen-themed title (`KITCHEN DEFENSE — DETERGENTS VS INSECTS`), composite character icons, and interactive hover/click buttons:
+    - **`START GAME`** — resets placeholders and starts gameplay (`STATE_PLAYING`).
+    - **`EXIT GAME`** — closes the application window.
+- **Pause Menu (`drawPauseMenu`):**
+  - Triggered during gameplay with **`ESC`** (or by clicking the top-right **`PAUSE`** HUD button).
+  - Renders over the paused scene with interactive hover/click buttons:
+    - **`CONTINUE`** — resumes `STATE_PLAYING`.
+    - **`RESTART`** — resets collectibles/health and restarts `STATE_PLAYING`.
+    - **`MAIN MENU`** — resets state and returns to `STATE_MAIN_MENU`.
+- **Win / Lose Menu (`drawWinLoseMenu`):**
+  - Shown when `currentGameState` is `STATE_WON` (`YOU WIN — KITCHEN IS CLEAN`) or `STATE_LOST` (`YOU LOSE — INSECTS REACHED THE FOOD`).
+  - Interactive hover/click buttons for **`RESTART`** and **`MAIN MENU`**.
+
+### 3. Gameplay Top HUD & Player Cards (`drawHUD`)
+
+- **Collectibles Counter:** Drawn at the top-right with a composite soapy coin icon (`drawCollectibleIcon`) and live numeric counter (`drawNumber`), starting at `30` coins.
+- **3 Player Cards (`SWATTER` = 10, `SPRAY` = 40, `STICKY` = 60):**
+  - Each card features a multi-primitive composite icon:
+    - `drawSwatterIcon` — Melee Fly Swatter
+    - `drawSprayBottleIcon` — Long Range Spray Cleaning Bottle
+    - `drawStickySheetIcon` — Stationary Defense Sticky Sheet Trap
+  - **Locked vs. Unlocked Behavior (`collectibles >= cost`):**
+    - At `30` starting coins, only **`SWATTER` (10)** is unlocked; **`SPRAY` (40)** and **`STICKY` (60)** start locked.
+    - **Locked cards (`collectibles < cost`):** Rendered completely in **grayscale** and ignore mouse hover and click events.
+    - **Unlocked cards (`collectibles >= cost`):** Rendered in **full color**, highlight on mouse hover, and can be clicked to select/deselect for lane placement.
+    - **Dynamic Unlock / Re-lock:** Cards automatically unlock when `collectibles` reaches `40` or `60`, and automatically return to their locked grayscale state whenever `collectibles` drops below their cost.
+
+### 4. Reusable Unit Health Display (`drawHealthBar`)
+
+```cpp
+void drawHealthBar(
+    GLint transformLocation,
+    GLint colorLocation,
+    float x,
+    float y,
+    int currentHP,
+    int maxHP
+);
+```
+
+- Draws a segmented health bar + numeric HP count above/below any player or enemy at `(x, y)`.
+- Automatically scales the fill width by `currentHP / maxHP` and shifts color from **green** (high HP) to **yellow** (medium HP) to **red** (low HP).
+
+### 5. Standalone Test Controls
+
+| Input | Action |
+|---|---|
+| **Mouse Hover & Left Click** | Interact with menu buttons, HUD `PAUSE` button, and unlocked Player Cards |
+| **Left Click on Lane (with Card selected)** | Simulates placing that unit by spending its coin cost (`10`, `40`, or `60`) |
+| **`ESC`** | Toggle between `STATE_PLAYING` and `STATE_PAUSED` |
+| **`UP` Arrow** or **`+` (`=`)** | Add `+5` coins (test unlocking `SPRAY` at `40` and `STICKY` at `60`) |
+| **`DOWN` Arrow** or **`-`** | Subtract `-5` coins (test automatic grayscale re-locking below `60`, `40`, and `10`) |
+| **`H`** | Deal `1` damage to all placeholder units on the lanes to test `drawHealthBar` |
+| **`R`** | Reset placeholder coins (`30`) and unit health values |
+| **`1` / `2` / `3` / `4` / `5` / `C`** | Jump directly to Main Menu (`1`), Playing + HUD (`2`), Paused (`3`), Won (`4`), Lost (`5`), or Cutscene (`C`) |

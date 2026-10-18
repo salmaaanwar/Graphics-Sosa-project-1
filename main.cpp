@@ -8,6 +8,7 @@
 #include <cmath>
 #include "Renderer.h"
 #include "ExampleScene.h"
+#include "UI.h"
 
 glm::mat4 projection = glm::mat4(1.0f);
 
@@ -85,6 +86,23 @@ void framebufferSizeCallback(
     }
 }
 
+void keyCallback(GLFWwindow *window, int key, int /*scancode*/, int action, int /*mods*/)
+{
+    handleUIKeyPress(window, key, action);
+}
+
+void mouseButtonCallback(GLFWwindow *window, int button, int action, int /*mods*/)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+        glm::vec2 mouseWorld;
+        if (mouseToWorld(window, projection, mouseWorld))
+        {
+            handleUIMouseClick(window, mouseWorld.x, mouseWorld.y);
+        }
+    }
+}
+
 int main()
 {
 
@@ -128,6 +146,8 @@ int main()
     framebufferSizeCallback(window, framebufferWidth, framebufferHeight);
 
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
+    glfwSetKeyCallback(window, keyCallback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
 
     // --- Shader program ---
     GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSrc);
@@ -231,7 +251,7 @@ int main()
     GLint colorLocation = glGetUniformLocation(shaderProgram, "uColor");
     GLint projectionLocation = glGetUniformLocation(shaderProgram, "u_Projection");
 
-    const bool showExamples = true;
+    const bool showExamples = false;
 
     // Render loop
     while (!glfwWindowShouldClose(window))
@@ -245,6 +265,9 @@ int main()
 
         glBindVertexArray(VAO);
 
+        glm::vec2 mouseWorld(-99.0f, -99.0f);
+        mouseToWorld(window, projection, mouseWorld);
+
         if (showExamples)
         {
             drawExampleScene(
@@ -253,8 +276,6 @@ int main()
                 circleVertexStart,
                 circleVertexCount,
                 triangleVertexStart);
-
-            glm::vec2 mouseWorld;
 
             if (mouseToWorld(window, projection, mouseWorld))
             {
@@ -268,6 +289,17 @@ int main()
                     mouseWorld.y,
                     0.025f);
             }
+        }
+        else
+        {
+            drawUI(
+                transformLocation,
+                colorLocation,
+                circleVertexStart,
+                circleVertexCount,
+                triangleVertexStart,
+                mouseWorld.x,
+                mouseWorld.y);
         }
 
         glfwSwapBuffers(window);
