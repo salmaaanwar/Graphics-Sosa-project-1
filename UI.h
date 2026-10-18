@@ -3,23 +3,14 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <string>
-
-// Game states
-const int STATE_MAIN_MENU = 0;
-const int STATE_CUTSCENE  = 1;
-const int STATE_PLAYING   = 2;
-const int STATE_PAUSED    = 3;
-const int STATE_WON       = 4;
-const int STATE_LOST      = 5;
+#include "Game.h"
 
 // Player card costs (Melee = 10, Long Range = 40, Defense = 60)
 const int MELEE_COST   = 10;
 const int RANGED_COST  = 40;
 const int DEFENSE_COST = 60;
 
-// Simple getters and setters for shared state
-int getGameState();
-void setGameState(int state);
+// Game state functions come from Game.h; HUD values remain in this module.
 int getCollectibles();
 void setCollectibles(int amount);
 int getSelectedCard();

@@ -9,6 +9,8 @@
 #include "Renderer.h"
 #include "ExampleScene.h"
 #include "UI.h"
+#include "Game.h"
+#include "Cutscene.h"
 
 glm::mat4 projection = glm::mat4(1.0f);
 
@@ -125,6 +127,7 @@ int main()
         return -1;
     }
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1); // Match Lab 4: avoid drawing more frames than the display needs.
 
     int version = gladLoadGL(glfwGetProcAddress);
     if (version == 0){
@@ -252,10 +255,18 @@ int main()
     GLint projectionLocation = glGetUniformLocation(shaderProgram, "u_Projection");
 
     const bool showExamples = false;
+    float lastFrame = static_cast<float>(glfwGetTime());
 
     // Render loop
     while (!glfwWindowShouldClose(window))
     {
+        glfwPollEvents();
+        float currentFrame = static_cast<float>(glfwGetTime());
+        float deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        if (!showExamples) updateGame(deltaTime);
+
         glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -292,18 +303,19 @@ int main()
         }
         else
         {
-            drawUI(
-                transformLocation,
-                colorLocation,
-                circleVertexStart,
-                circleVertexCount,
-                triangleVertexStart,
-                mouseWorld.x,
-                mouseWorld.y);
+            if (getGameState() == STATE_CUTSCENE)
+            {
+                drawCutscene(transformLocation, colorLocation, circleVertexStart,
+                    circleVertexCount, triangleVertexStart);
+            }
+            else
+            {
+                drawUI(transformLocation, colorLocation, circleVertexStart,
+                    circleVertexCount, triangleVertexStart, mouseWorld.x, mouseWorld.y);
+            }
         }
 
         glfwSwapBuffers(window);
-        glfwPollEvents();
     }
 
     // cleanup

@@ -6,7 +6,12 @@
 - `Renderer.h`, `Renderer.cpp` — shapes, transformations, and mouse conversion.
 - `TextRenderer.h`, `TextRenderer.cpp` — text and number drawing.
 - `ExampleScene.h`, `ExampleScene.cpp` — working examples.
+- `Game.h`, `Game.cpp` — shared states, timing, pause, restart and result transitions.
+- `Cutscene.h`, `Cutscene.cpp` — the 16-second animated kitchen introduction.
 - `CMakeLists.txt` — source files and library configuration.
+
+For Member 4's implementation and a lab-style explanation of the animation,
+timing and integration changes, see [docs/MEMBER4.md](docs/MEMBER4.md).
 
 ## Build and Run
 
@@ -108,6 +113,9 @@ Implemented using the existing `Renderer` and `TextRenderer` utilities with comp
 
 ### 1. Shared Game States & Functions (`UI.h`)
 
+State definitions and transition functions now live in `Game.h` / `Game.cpp`.
+`UI.h` includes `Game.h`, so the same names remain available to UI callers.
+
 ```cpp
 const int STATE_MAIN_MENU = 0;
 const int STATE_CUTSCENE  = 1;
@@ -132,7 +140,7 @@ void resetGamePlaceholders();
 
 - **Main Menu (`drawMainMenu`):**
   - Displays the kitchen-themed title (`KITCHEN DEFENSE — DETERGENTS VS INSECTS`), composite character icons, and interactive hover/click buttons:
-    - **`START GAME`** — resets placeholders and starts gameplay (`STATE_PLAYING`).
+    - **`START GAME`** — resets placeholders, plays the animated intro (`STATE_CUTSCENE`), then automatically enters `STATE_PLAYING`.
     - **`EXIT GAME`** — closes the application window.
 - **Pause Menu (`drawPauseMenu`):**
   - Triggered during gameplay with **`ESC`** (or by clicking the top-right **`PAUSE`** HUD button).
@@ -141,7 +149,7 @@ void resetGamePlaceholders();
     - **`RESTART`** — resets collectibles/health and restarts `STATE_PLAYING`.
     - **`MAIN MENU`** — resets state and returns to `STATE_MAIN_MENU`.
 - **Win / Lose Menu (`drawWinLoseMenu`):**
-  - Shown when `currentGameState` is `STATE_WON` (`YOU WIN — KITCHEN IS CLEAN`) or `STATE_LOST` (`YOU LOSE — INSECTS REACHED THE FOOD`).
+  - Shown when `getGameState()` is `STATE_WON` (`YOU WIN — KITCHEN IS CLEAN`) or `STATE_LOST` (`YOU LOSE — INSECTS REACHED THE FOOD`).
   - Interactive hover/click buttons for **`RESTART`** and **`MAIN MENU`**.
 
 ### 3. Gameplay Top HUD & Player Cards (`drawHUD`)
@@ -184,5 +192,8 @@ void drawHealthBar(
 | **`UP` Arrow** or **`+` (`=`)** | Add `+5` coins (test unlocking `SPRAY` at `40` and `STICKY` at `60`) |
 | **`DOWN` Arrow** or **`-`** | Subtract `-5` coins (test automatic grayscale re-locking below `60`, `40`, and `10`) |
 | **`H`** | Deal `1` damage to all placeholder units on the lanes to test `drawHealthBar` |
-| **`R`** | Reset placeholder coins (`30`) and unit health values |
-| **`1` / `2` / `3` / `4` / `5` / `C`** | Jump directly to Main Menu (`1`), Playing + HUD (`2`), Paused (`3`), Won (`4`), Lost (`5`), or Cutscene (`C`) |
+| **`R`** | Restart gameplay, resetting placeholder coins, health, selection and timers |
+| **`1` / `2` / `3` / `4` / `5` / `C`** | Development controls: Main Menu (`1`), reset into Playing (`2`), pause Playing (`3`), finish Playing as Won/Lost (`4`/`5`), or replay the intro (`C`) |
+
+Coin/health test controls only affect Playing. Pause and result screens freeze
+gameplay updates. Start plays the intro; Restart goes directly to fresh gameplay.
