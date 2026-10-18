@@ -4,36 +4,28 @@
 #include <glm/glm.hpp>
 #include <string>
 
-// Game states shared across modules
-enum GameState {
-    STATE_MAIN_MENU = 0,
-    STATE_CUTSCENE  = 1,
-    STATE_PLAYING   = 2,
-    STATE_PAUSED    = 3,
-    STATE_WON       = 4,
-    STATE_LOST      = 5
-};
+// Game states
+const int STATE_MAIN_MENU = 0;
+const int STATE_CUTSCENE  = 1;
+const int STATE_PLAYING   = 2;
+const int STATE_PAUSED    = 3;
+const int STATE_WON       = 4;
+const int STATE_LOST      = 5;
 
 // Player card costs (Melee = 10, Long Range = 40, Defense = 60)
 const int MELEE_COST   = 10;
 const int RANGED_COST  = 40;
 const int DEFENSE_COST = 60;
 
-// Shared UI & placeholder state variables
-extern int currentGameState;
-extern int collectibles;
-extern int selectedCard;
-
-// Placeholder unit health values for testing HUD & health bars
-extern int testMeleeHP;
-extern int testRangedHP;
-extern int testDefenseHP;
-extern int testEnemyHP;
-
-// Reset placeholder values (used on Restart / Return to Main Menu)
+// Simple getters and setters for shared state
+int getGameState();
+void setGameState(int state);
+int getCollectibles();
+void setCollectibles(int amount);
+int getSelectedCard();
 void resetGamePlaceholders();
 
-// Composite icon drawing helpers (built from multiple primitives)
+// Composite icon drawing functions (built from multiple primitives)
 void drawCollectibleIcon(
     GLint transformLocation,
     GLint colorLocation,
@@ -161,4 +153,3 @@ void handleUIKeyPress(
     int key,
     int action
 );
-

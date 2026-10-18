@@ -106,25 +106,26 @@ Coordinate changes to shared files and function parameters with the team.
 
 Implemented using the existing `Renderer` and `TextRenderer` utilities with composite multi-primitive shapes matching our **Kitchen Countertop (Cleaning Detergents vs. Insects)** theme.
 
-### 1. Shared Game States & Variables (`UI.h`)
+### 1. Shared Game States & Functions (`UI.h`)
 
 ```cpp
-enum GameState {
-    STATE_MAIN_MENU = 0,
-    STATE_CUTSCENE  = 1,
-    STATE_PLAYING   = 2,
-    STATE_PAUSED    = 3,
-    STATE_WON       = 4,
-    STATE_LOST      = 5
-};
+const int STATE_MAIN_MENU = 0;
+const int STATE_CUTSCENE  = 1;
+const int STATE_PLAYING   = 2;
+const int STATE_PAUSED    = 3;
+const int STATE_WON       = 4;
+const int STATE_LOST      = 5;
 
 const int MELEE_COST   = 10; // Fly Swatter (Melee)
 const int RANGED_COST  = 40; // Spray Bottle (Long Range)
 const int DEFENSE_COST = 60; // Sticky Sheet (Defense)
 
-extern int currentGameState; // Starts at STATE_MAIN_MENU
-extern int collectibles;     // Starts at 30 coins (enough for 3 Melee units)
-extern int selectedCard;     // -1 = none, 0 = Melee, 1 = Ranged, 2 = Defense
+int getGameState();
+void setGameState(int state);
+int getCollectibles();
+void setCollectibles(int amount);
+int getSelectedCard();
+void resetGamePlaceholders();
 ```
 
 ### 2. Implemented Menus

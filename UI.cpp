@@ -14,8 +14,36 @@ int testRangedHP  = 4; // Ranged max HP = 5
 int testDefenseHP = 7; // Defense max HP = 7
 int testEnemyHP   = 3; // Enemy max HP = 5
 
+int getGameState()
+{
+    return currentGameState;
+}
+
+void setGameState(int state)
+{
+    currentGameState = state;
+}
+
+int getCollectibles()
+{
+    return collectibles;
+}
+
+void setCollectibles(int amount)
+{
+    collectibles = amount;
+    if (collectibles < 0) {
+        collectibles = 0;
+    }
+}
+
+int getSelectedCard()
+{
+    return selectedCard;
+}
+
 // Helper: check if mouse world position (px, py) is inside a rectangle centered at (rx, ry)
-static bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh)
+bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh)
 {
     float halfW = rw * 0.5f;
     float halfH = rh * 0.5f;
@@ -24,7 +52,7 @@ static bool isPointInRect(float px, float py, float rx, float ry, float rw, floa
 }
 
 // Helper: draw centered text around (centerX, centerY)
-static void drawCenteredText(
+void drawCenteredText(
     GLint transformLocation,
     const std::string& text,
     float centerX,
@@ -42,7 +70,7 @@ static void drawCenteredText(
 }
 
 // Helper: check if a player card is currently unlocked (depends purely on collectibles >= cost)
-static bool isCardUnlocked(int cardIndex)
+bool isCardUnlocked(int cardIndex)
 {
     if (cardIndex == 0) {
         return collectibles >= MELEE_COST;
@@ -68,7 +96,7 @@ void resetGamePlaceholders()
 }
 
 // Helper: draw an interactive layered button with hover highlight
-static void drawButton(
+void drawButton(
     GLint transformLocation,
     GLint colorLocation,
     float x,
@@ -95,9 +123,17 @@ static void drawButton(
     drawRectangle(transformLocation, x, y, width, height);
 
     // Inner fill (brightened when hovered)
-    float fillR = isHovered ? glm::min(baseR + 0.18f, 1.0f) : baseR;
-    float fillG = isHovered ? glm::min(baseG + 0.18f, 1.0f) : baseG;
-    float fillB = isHovered ? glm::min(baseB + 0.18f, 1.0f) : baseB;
+    float fillR = baseR;
+    float fillG = baseG;
+    float fillB = baseB;
+    if (isHovered) {
+        fillR += 0.18f;
+        fillG += 0.18f;
+        fillB += 0.18f;
+        if (fillR > 1.0f) fillR = 1.0f;
+        if (fillG > 1.0f) fillG = 1.0f;
+        if (fillB > 1.0f) fillB = 1.0f;
+    }
     glUniform3f(colorLocation, fillR, fillG, fillB);
     drawRectangle(transformLocation, x, y, width - 0.025f, height - 0.025f);
 
@@ -354,7 +390,7 @@ void drawStickySheetIcon(
 }
 
 // Composite Enemy Icon (Insect / Fly with Gun) for placeholder scene & menus
-static void drawPlaceholderInsect(
+void drawPlaceholderInsect(
     GLint transformLocation,
     GLint colorLocation,
     int circleVertexStart,
@@ -995,7 +1031,7 @@ void handleUIMouseClick(
 }
 
 void handleUIKeyPress(
-    GLFWwindow* /*window*/,
+    GLFWwindow* window,
     int key,
     int action
 ) {
