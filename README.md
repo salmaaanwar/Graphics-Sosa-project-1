@@ -185,4 +185,32 @@ void drawHealthBar(
 | **`DOWN` Arrow** or **`-`** | Subtract `-5` coins (test automatic grayscale re-locking below `60`, `40`, and `10`) |
 | **`H`** | Deal `1` damage to all placeholder units on the lanes to test `drawHealthBar` |
 | **`R`** | Reset placeholder coins (`30`) and unit health values |
-| **`1` / `2` / `3` / `4` / `5` / `C`** | Jump directly to Main Menu (`1`), Playing + HUD (`2`), Paused (`3`), Won (`4`), Lost (`5`), or Cutscene (`C`) |
+| **`1` / `2` / `3` / `4` / `5` / `C`** | Jump directly to Main Menu (`1`), Playing + HUD (`2`), Paused (`3`), Won (`4`), Lost (`5`), or Cutscene (`C`) |
+## Member 2 Environment and Lane System
+
+Added `Environment.h` and `Environment.cpp` for a four-lane countertop battlefield, selectable lane highlights, a composite food home base, kitchen details, and optional moving placeholder units with health bars. Lane geometry, colors, and placeholder mode are named constants near the top of `Environment.cpp`.
+
+`main.cpp` routes gameplay-area clicks to Environment and keeps HUD/menu clicks with UI. It renders Environment before the existing HUD and pause/end overlays. `CMakeLists.txt` registers `Environment.cpp`. The UI placeholder lane click behavior is avoided by consuming gameplay-area clicks before `handleUIMouseClick`; `UI.cpp` was not changed.
+
+Public API:
+
+```cpp
+void update(float dt);
+void render(GLint transformLocation, GLint colorLocation, int circleVertexStart, int circleVertexCount, int triangleVertexStart);
+void handleMouseMove(float mouseX, float mouseY);
+void handleMouseButton(int button, int action, float mouseX, float mouseY);
+int getLaneCount() const;
+float getLaneCenterY(int i) const;
+float getLaneTop(int i) const;
+float getLaneBottom(int i) const;
+float getLaneStartX() const;
+float getLaneEndX() const;
+float getHomeBaseRightEdgeX() const;
+int getLaneAtPoint(float x, float y) const;
+bool isLaneSelected(int i) const;
+std::vector<int> getSelectedLanes() const;
+void clearSelection();
+void reset();
+```
+
+Build verification was unavailable in this environment because `cmake` is not installed or on PATH. No runtime visual verification was performed.

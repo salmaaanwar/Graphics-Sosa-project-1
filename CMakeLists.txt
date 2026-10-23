@@ -16,6 +16,7 @@ add_executable(OpenGLStarter
     ExampleScene.cpp
     TextRenderer.cpp
     UI.cpp
+    Environment.cpp
 )
 
 target_include_directories(OpenGLStarter PRIVATE external/glad/include)

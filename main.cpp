@@ -9,8 +9,10 @@
 #include "Renderer.h"
 #include "ExampleScene.h"
 #include "UI.h"
+#include "Environment.h"
 
 glm::mat4 projection = glm::mat4(1.0f);
+Environment environment;
 
 // vertex shader
 const char *vertexShaderSrc = R"(
@@ -89,16 +91,36 @@ void framebufferSizeCallback(
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
     handleUIKeyPress(window, key, action);
+    if (action == GLFW_PRESS && (key == GLFW_KEY_R || key == GLFW_KEY_1)) environment.reset();
 }
 
 void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    if (button == GLFW_MOUSE_BUTTON_LEFT)
     {
         glm::vec2 mouseWorld;
         if (mouseToWorld(window, projection, mouseWorld))
         {
-            handleUIMouseClick(window, mouseWorld.x, mouseWorld.y);
+            environment.handleMouseButton(button, action, mouseWorld.x, mouseWorld.y);
+            // The playing field absorbs clicks below the HUD so UI's broad placeholder
+            // placement zone cannot spend coins on empty space or duplicate lane clicks.
+            if (action == GLFW_PRESS &&
+                !(getGameState() == STATE_PLAYING && mouseWorld.y < 0.65f))
+            {
+                const int stateBeforeClick = getGameState();
+                handleUIMouseClick(window, mouseWorld.x, mouseWorld.y);
+                const bool clickedMainMenuStart = stateBeforeClick == STATE_MAIN_MENU &&
+                    std::fabs(mouseWorld.x) <= 0.34f && mouseWorld.y >= -0.08f && mouseWorld.y <= 0.12f;
+                const bool clickedPauseReset = stateBeforeClick == STATE_PAUSED &&
+                    std::fabs(mouseWorld.x) <= 0.39f &&
+                    ((mouseWorld.y >= -0.225f && mouseWorld.y <= -0.055f) ||
+                     (mouseWorld.y >= -0.465f && mouseWorld.y <= -0.295f));
+                const bool clickedEndReset = (stateBeforeClick == STATE_WON || stateBeforeClick == STATE_LOST) &&
+                    std::fabs(mouseWorld.x) <= 0.39f &&
+                    ((mouseWorld.y >= -0.13f && mouseWorld.y <= 0.05f) ||
+                     (mouseWorld.y >= -0.41f && mouseWorld.y <= -0.23f));
+                if (clickedMainMenuStart || clickedPauseReset || clickedEndReset) environment.reset();
+            }
         }
     }
 }
@@ -252,6 +274,7 @@ int main()
     GLint projectionLocation = glGetUniformLocation(shaderProgram, "u_Projection");
 
     const bool showExamples = false;
+    double previousFrameTime = glfwGetTime();
 
     // Render loop
     while (!glfwWindowShouldClose(window))
@@ -267,6 +290,11 @@ int main()
 
         glm::vec2 mouseWorld(-99.0f, -99.0f);
         mouseToWorld(window, projection, mouseWorld);
+        environment.handleMouseMove(mouseWorld.x, mouseWorld.y);
+        const double frameTime = glfwGetTime();
+        if (getGameState() == STATE_PLAYING)
+            environment.update(static_cast<float>(frameTime - previousFrameTime));
+        previousFrameTime = frameTime;
 
         if (showExamples)
         {
@@ -292,14 +320,30 @@ int main()
         }
         else
         {
-            drawUI(
-                transformLocation,
-                colorLocation,
-                circleVertexStart,
-                circleVertexCount,
-                triangleVertexStart,
-                mouseWorld.x,
-                mouseWorld.y);
+            const int state = getGameState();
+            if (state == STATE_PLAYING)
+            {
+                environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
+                        mouseWorld.x, mouseWorld.y);
+            }
+            else if (state == STATE_PAUSED)
+            {
+                environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart, -99.0f, -99.0f);
+                drawPauseMenu(transformLocation, colorLocation, mouseWorld.x, mouseWorld.y);
+            }
+            else if (state == STATE_WON || state == STATE_LOST)
+            {
+                environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawWinLoseMenu(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
+                                state == STATE_WON, mouseWorld.x, mouseWorld.y);
+            }
+            else
+            {
+                drawUI(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
+                       mouseWorld.x, mouseWorld.y);
+            }
         }
 
         glfwSwapBuffers(window);
