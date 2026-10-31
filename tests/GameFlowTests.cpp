@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "Cutscene.h"
+#include "Environment.h"
 #include "UI.h"
 #include <cmath>
 #include <cstdlib>
@@ -133,6 +134,73 @@ static void testFreshIntroAndGuards()
     check(isGameplayRunning() && near(getCutsceneTime(), CUTSCENE_DURATION), "a long frame completes the intro safely");
 }
 
+static void clickLane(int lane)
+{
+    Environment& environment = getEnvironment();
+    float x = environment.getLaneStartX() + 0.1f;
+    float y = environment.getLaneCenterY(lane);
+    environment.handleMouseButton(GLFW_MOUSE_BUTTON_LEFT, GLFW_PRESS, x, y);
+    environment.handleMouseButton(GLFW_MOUSE_BUTTON_LEFT, GLFW_RELEASE, x, y);
+}
+
+static void testEnvironmentAndGameFlow()
+{
+    Environment& environment = getEnvironment();
+    startNewGame();
+    clickLane(0);
+    check(environment.getSelectedLanes().empty(), "intro ignores lane selection");
+    updateGame(CUTSCENE_DURATION);
+    clickLane(0);
+    clickLane(2);
+    check(environment.isLaneSelected(0) && environment.isLaneSelected(2),
+        "gameplay supports multiple selected lanes");
+
+    handleUIKeyPress(nullptr, GLFW_KEY_ESCAPE, GLFW_PRESS);
+    clickLane(0);
+    clickLane(1);
+    check(environment.isLaneSelected(0) && !environment.isLaneSelected(1),
+        "pause ignores lane clicks");
+    handleUIMouseClick(nullptr, 0.0f, 0.10f);
+    check(environment.isLaneSelected(0) && environment.isLaneSelected(2),
+        "Continue preserves selected lanes");
+    clickLane(0);
+    check(!environment.isLaneSelected(0), "clicking again deselects a lane");
+
+    // All UI/development reset paths must reset the same Environment instance.
+    for (int key : {GLFW_KEY_R, GLFW_KEY_2, GLFW_KEY_C, GLFW_KEY_1})
+    {
+        restartGame();
+        clickLane(1);
+        handleUIKeyPress(nullptr, key, GLFW_PRESS);
+        check(environment.getSelectedLanes().empty(), "keyboard session resets clear lanes");
+    }
+
+    restartGame();
+    clickLane(3);
+    pauseGame();
+    handleUIMouseClick(nullptr, 0.0f, -0.14f);
+    check(environment.getSelectedLanes().empty(), "pause-menu Restart clears lanes");
+    clickLane(3);
+    pauseGame();
+    handleUIMouseClick(nullptr, 0.0f, -0.38f);
+    check(environment.getSelectedLanes().empty(), "pause-menu Main Menu clears lanes");
+
+    for (bool won : {true, false})
+    {
+        restartGame();
+        clickLane(1);
+        finishGame(won);
+        clickLane(1);
+        check(environment.isLaneSelected(1), "result screen ignores lane clicks");
+        handleUIMouseClick(nullptr, 0.0f, -0.04f);
+        check(environment.getSelectedLanes().empty(), "result-menu Restart clears lanes");
+        clickLane(1);
+        finishGame(won);
+        handleUIMouseClick(nullptr, 0.0f, -0.32f);
+        check(environment.getSelectedLanes().empty(), "result-menu Main Menu clears lanes");
+    }
+}
+
 int main()
 {
     testIntroAndStartButton();
@@ -140,6 +208,7 @@ int main()
     testPauseAndRestart();
     testResults();
     testFreshIntroAndGuards();
-    std::cout << "Game flow tests passed: intro timing, menu clicks, pause, restart, results and resets.\n";
+    testEnvironmentAndGameFlow();
+    std::cout << "Game flow tests passed: intro timing, menu clicks, pause, restart, results, resets and environment integration.\n";
     return 0;
 }

@@ -1,5 +1,9 @@
 #pragma once
 
+class Environment;
+// The shared battlefield follows the game controller's timing and reset paths.
+Environment& getEnvironment();
+
 // Keep the same state names and values that the UI module already uses.
 const int STATE_MAIN_MENU = 0;
 const int STATE_CUTSCENE  = 1;

@@ -16,10 +16,10 @@ and a fly-swatter guard protects the food while a larger swarm approaches.
 
 The existing shared files have small integration changes:
 
-- `main.cpp` calculates delta time, calls `updateGame`, and draws either the intro or the existing UI. V-sync follows the Lab 4 example.
+- `main.cpp` calculates one delta time, calls `updateGame`, and draws the intro or the environment with the existing HUD and menu overlays. V-sync follows the Lab 4 example.
 - `UI.h` includes `Game.h` instead of defining a second set of state constants. Other files can still include `UI.h` and use the same names.
 - `UI.cpp` calls `startNewGame`, `pauseGame`, `resumeGame`, `restartGame`, `returnToMainMenu` and `finishGame`. Its static intro placeholder and Continue button were removed. Gameplay test input is ignored while paused or finished.
-- `CMakeLists.txt` compiles the two new source files and optionally builds the flow tests.
+- `CMakeLists.txt` compiles the game-flow, cutscene and environment sources and optionally builds the flow tests.
 
 ## How the code follows the labs
 
@@ -41,8 +41,8 @@ the wings animate without changing Member 3's menu insect.
 Lab 4 calculates the time between frames. The same calculation is now in `main.cpp`:
 
 ```cpp
-float currentFrame = static_cast<float>(glfwGetTime());
-float deltaTime = currentFrame - lastFrame;
+double currentFrame = glfwGetTime();
+float deltaTime = static_cast<float>(currentFrame - lastFrame);
 lastFrame = currentFrame;
 updateGame(deltaTime);
 ```
@@ -132,6 +132,12 @@ requirement.
 appropriate scene/menu during Paused, Won and Lost, but does not advance gameplay.
 This is why pause does not need a second render loop or a blocking `while` loop.
 
+The game controller also owns the shared `Environment`, available through
+`getEnvironment()`. It advances the environment with the same delta time only
+while Playing. Start, Restart and Main Menu reset its lane selection and animation
+timer; Continue preserves both. These resets apply to menu buttons and keyboard
+shortcuts alike, without duplicating button coordinates in the main callbacks.
+
 When player/enemy modules are ready, put their updates in the Playing branch of
 `updateGame`, or gate their update calls with `isGameplayRunning()`. Their inputs
 must use the same check. That ensures movement, attacks and spawning all stop
@@ -143,7 +149,7 @@ base. The flow controller handles the resulting screen; it does not invent wave
 or collision logic before those modules exist.
 
 The current reset calls `resetGamePlaceholders()` because the UI owns the test
-coins and health. Add the real player/enemy/environment reset functions here
+coins and health, and `environment.reset()` for the battlefield. Add the real player/enemy reset functions here
 when the team integrates those modules. Continue must not call those resets.
 
 ## 5. Try it and inspect it
@@ -171,10 +177,19 @@ ctest --test-dir build -C Debug --output-on-failure
 
 The tests exercise the real menu input functions without opening an OpenGL
 window. They cover intro boundaries at 30/60/144 FPS, old intro-button clicks,
-pause/resume timing, HUD pause, resets, both result menus and invalid states.
+pause/resume timing, HUD pause, resets, both result menus, invalid states and
+environment lane selection across session transitions.
 
 Implementation verification also rendered 80 intro frames and all five UI
 screens in a hidden OpenGL window, plus portrait/widescreen intro captures.
 There were no shader compilation or OpenGL errors in that check. The local
 `build/previews/cutscene-preview.gif` and `cutscene-storyboard.png` show the result.
 These generated previews are ignored build artifacts, not required game assets.
+
+After merging the environment/lane module, both the application and flow-test
+targets built successfully with GCC and CMake. The expanded flow tests passed.
+A local hidden-window check also rendered 15 frames through the main loop's
+render branches and input callbacks, covering the intro, battlefield/HUD, pause,
+both results, and portrait/widescreen layouts without OpenGL errors. Paused
+frames remained identical after a simulated 20-second update, and lane/empty-field
+clicks preserved coins. These merge-check files are ignored under `build-pr-merge/`.

@@ -187,7 +187,7 @@ void drawHealthBar(
 | Input | Action |
 |---|---|
 | **Mouse Hover & Left Click** | Interact with menu buttons, HUD `PAUSE` button, and unlocked Player Cards |
-| **Left Click on Lane (with Card selected)** | Simulates placing that unit by spending its coin cost (`10`, `40`, or `60`) |
+| **Left Click on Lane** | Select/deselect that lane; the integrated environment does not purchase units yet |
 | **`ESC`** | Toggle between `STATE_PLAYING` and `STATE_PAUSED` |
 | **`UP` Arrow** or **`+` (`=`)** | Add `+5` coins (test unlocking `SPRAY` at `40` and `STICKY` at `60`) |
 | **`DOWN` Arrow** or **`-`** | Subtract `-5` coins (test automatic grayscale re-locking below `60`, `40`, and `10`) |
@@ -197,3 +197,32 @@ void drawHealthBar(
 
 Coin/health test controls only affect Playing. Pause and result screens freeze
 gameplay updates. Start plays the intro; Restart goes directly to fresh gameplay.
+
+## Member 2 Environment and Lane System
+
+Added `Environment.h` and `Environment.cpp` for a four-lane countertop battlefield, selectable lane highlights, a composite food home base, kitchen details, and optional moving placeholder units with health bars. Lane geometry, colors, and placeholder mode are named constants near the top of `Environment.cpp`.
+
+`main.cpp` routes gameplay-area clicks to Environment and keeps HUD/menu clicks with UI. It renders Environment before the existing HUD and pause/end overlays, while the intro uses `drawCutscene`. The shared game controller owns the Environment instance, exposed through `getEnvironment()`, advances it only while Playing, and resets it on Start, Restart and Main Menu. Continue preserves lane selection and animation time. `CMakeLists.txt` registers `Environment.cpp` for the application and optional game-flow tests. The UI placeholder lane click behavior is avoided by consuming gameplay-area clicks before `handleUIMouseClick`.
+
+Public API:
+
+```cpp
+void update(float dt);
+void render(GLint transformLocation, GLint colorLocation, int circleVertexStart, int circleVertexCount, int triangleVertexStart);
+void handleMouseMove(float mouseX, float mouseY);
+void handleMouseButton(int button, int action, float mouseX, float mouseY);
+int getLaneCount() const;
+float getLaneCenterY(int i) const;
+float getLaneTop(int i) const;
+float getLaneBottom(int i) const;
+float getLaneStartX() const;
+float getLaneEndX() const;
+float getHomeBaseRightEdgeX() const;
+int getLaneAtPoint(float x, float y) const;
+bool isLaneSelected(int i) const;
+std::vector<int> getSelectedLanes() const;
+void clearSelection();
+void reset();
+```
+
+Lane clicks currently select/deselect lanes without purchasing units. Combat, spawning, waves and purchased-unit placement still need gameplay modules. The `H` key affects only the separate UI placeholder scene; Environment currently renders fixed placeholder health values.

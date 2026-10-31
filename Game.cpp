@@ -1,10 +1,17 @@
 #include "Game.h"
 #include "Cutscene.h"
+#include "Environment.h"
 #include "UI.h"
 
 // Only this file stores the state. UI buttons request transitions through functions.
 static int currentGameState = STATE_MAIN_MENU;
 static float gameplayTime = 0.0f;
+static Environment environment;
+
+Environment& getEnvironment()
+{
+    return environment;
+}
 
 int getGameState()
 {
@@ -22,6 +29,7 @@ void setGameState(int state)
 
 void startNewGame()
 {
+    environment.reset();
     resetGamePlaceholders();
     gameplayTime = 0.0f;
     setGameState(STATE_CUTSCENE);
@@ -29,6 +37,7 @@ void startNewGame()
 
 void restartGame()
 {
+    environment.reset();
     resetGamePlaceholders();
     resetCutscene();
     gameplayTime = 0.0f;
@@ -38,6 +47,7 @@ void restartGame()
 
 void returnToMainMenu()
 {
+    environment.reset();
     resetGamePlaceholders();
     resetCutscene();
     gameplayTime = 0.0f;
@@ -82,6 +92,7 @@ void updateGame(float deltaTime)
     else if (currentGameState == STATE_PLAYING)
     {
         gameplayTime += deltaTime;
+        environment.update(deltaTime);
         // Future player/enemy updates go here, so they also stop during pause/loss.
     }
 }

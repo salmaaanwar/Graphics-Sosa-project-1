@@ -11,6 +11,7 @@
 #include "UI.h"
 #include "Game.h"
 #include "Cutscene.h"
+#include "Environment.h"
 
 glm::mat4 projection = glm::mat4(1.0f);
 
@@ -95,12 +96,19 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
 
 void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    if (button == GLFW_MOUSE_BUTTON_LEFT)
     {
         glm::vec2 mouseWorld;
         if (mouseToWorld(window, projection, mouseWorld))
         {
-            handleUIMouseClick(window, mouseWorld.x, mouseWorld.y);
+            getEnvironment().handleMouseButton(button, action, mouseWorld.x, mouseWorld.y);
+            // The playing field absorbs clicks below the HUD so UI's broad placeholder
+            // placement zone cannot spend coins on empty space or duplicate lane clicks.
+            if (action == GLFW_PRESS &&
+                !(getGameState() == STATE_PLAYING && mouseWorld.y < 0.65f))
+            {
+                handleUIMouseClick(window, mouseWorld.x, mouseWorld.y);
+            }
         }
     }
 }
@@ -255,14 +263,15 @@ int main()
     GLint projectionLocation = glGetUniformLocation(shaderProgram, "u_Projection");
 
     const bool showExamples = false;
-    float lastFrame = static_cast<float>(glfwGetTime());
+    double lastFrame = glfwGetTime();
+    Environment& environment = getEnvironment();
 
     // Render loop
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
-        float currentFrame = static_cast<float>(glfwGetTime());
-        float deltaTime = currentFrame - lastFrame;
+        double currentFrame = glfwGetTime();
+        float deltaTime = static_cast<float>(currentFrame - lastFrame);
         lastFrame = currentFrame;
 
         if (!showExamples) updateGame(deltaTime);
@@ -278,6 +287,7 @@ int main()
 
         glm::vec2 mouseWorld(-99.0f, -99.0f);
         mouseToWorld(window, projection, mouseWorld);
+        environment.handleMouseMove(mouseWorld.x, mouseWorld.y);
 
         if (showExamples)
         {
@@ -303,15 +313,34 @@ int main()
         }
         else
         {
-            if (getGameState() == STATE_CUTSCENE)
+            const int state = getGameState();
+            if (state == STATE_CUTSCENE)
             {
                 drawCutscene(transformLocation, colorLocation, circleVertexStart,
                     circleVertexCount, triangleVertexStart);
             }
+            else if (state == STATE_PLAYING)
+            {
+                environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
+                        mouseWorld.x, mouseWorld.y);
+            }
+            else if (state == STATE_PAUSED)
+            {
+                environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart, -99.0f, -99.0f);
+                drawPauseMenu(transformLocation, colorLocation, mouseWorld.x, mouseWorld.y);
+            }
+            else if (state == STATE_WON || state == STATE_LOST)
+            {
+                environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawWinLoseMenu(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
+                                state == STATE_WON, mouseWorld.x, mouseWorld.y);
+            }
             else
             {
-                drawUI(transformLocation, colorLocation, circleVertexStart,
-                    circleVertexCount, triangleVertexStart, mouseWorld.x, mouseWorld.y);
+                drawUI(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
+                       mouseWorld.x, mouseWorld.y);
             }
         }
 

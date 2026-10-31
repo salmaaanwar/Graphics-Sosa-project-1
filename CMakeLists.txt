@@ -18,6 +18,7 @@ add_executable(OpenGLStarter
     UI.cpp
     Game.cpp
     Cutscene.cpp
+    Environment.cpp
 )
 
 target_include_directories(OpenGLStarter PRIVATE external/glad/include)
@@ -34,6 +35,7 @@ if(BUILD_GAME_FLOW_TESTS)
         tests/GameFlowTests.cpp
         Game.cpp
         Cutscene.cpp
+        Environment.cpp
         UI.cpp
         Renderer.cpp
         TextRenderer.cpp
