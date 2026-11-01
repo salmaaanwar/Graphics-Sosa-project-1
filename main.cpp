@@ -13,6 +13,7 @@
 #include "Cutscene.h"
 #include "Environment.h"
 #include "Player.h"
+#include "PlayerCombat.h"
 
 glm::mat4 projection = glm::mat4(1.0f);
 
@@ -62,7 +63,7 @@ GLuint compileShader(GLenum type, const char *src)
 
 // window resizing and projection
 void framebufferSizeCallback(
-    GLFWwindow *window,
+    GLFWwindow *,
     int width,
     int height)
 {
@@ -90,12 +91,12 @@ void framebufferSizeCallback(
     }
 }
 
-void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+void keyCallback(GLFWwindow *window, int key, int, int action, int)
 {
     handleUIKeyPress(window, key, action);
 }
 
-void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
+void mouseButtonCallback(GLFWwindow *window, int button, int action, int)
 {
     if (button == GLFW_MOUSE_BUTTON_LEFT)
     {
@@ -103,8 +104,7 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
         if (mouseToWorld(window, projection, mouseWorld))
         {
             getEnvironment().handleMouseButton(button, action, mouseWorld.x, mouseWorld.y);
-            // The playing field absorbs clicks below the HUD so UI's broad placeholder
-            // placement zone cannot spend coins on empty space or duplicate lane clicks.
+            // Lane clicks select lanes or deploy exactly one armed player card.
             if (action == GLFW_PRESS &&
                 !(getGameState() == STATE_PLAYING && mouseWorld.y < 0.65f))
             {
@@ -324,6 +324,7 @@ int main()
             {
                 environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawPlayerCombat(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
                 drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
                         mouseWorld.x, mouseWorld.y);
             }
@@ -331,6 +332,7 @@ int main()
             {
                 environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawPlayerCombat(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
                 drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart, -99.0f, -99.0f);
                 drawPauseMenu(transformLocation, colorLocation, mouseWorld.x, mouseWorld.y);
             }
@@ -338,6 +340,7 @@ int main()
             {
                 environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawPlayerCombat(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
                 drawWinLoseMenu(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
                                 state == STATE_WON, mouseWorld.x, mouseWorld.y);
             }

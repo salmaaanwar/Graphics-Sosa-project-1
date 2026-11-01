@@ -18,7 +18,7 @@ The existing shared files have small integration changes:
 
 - `main.cpp` calculates one delta time, calls `updateGame`, and draws the intro or the environment with the existing HUD and menu overlays. V-sync follows the Lab 4 example.
 - `UI.h` includes `Game.h` instead of defining a second set of state constants. Other files can still include `UI.h` and use the same names.
-- `UI.cpp` calls `startNewGame`, `pauseGame`, `resumeGame`, `restartGame`, `returnToMainMenu` and `finishGame`. Its static intro placeholder and Continue button were removed. Gameplay test input is ignored while paused or finished.
+- `UI.cpp` calls `startNewGame`, `pauseGame`, `resumeGame`, `restartGame`, `returnToMainMenu` and `finishGame`. Its static intro placeholder and Continue button were removed. Gameplay input is ignored while paused or finished.
 - `CMakeLists.txt` compiles the game-flow, cutscene and environment sources and optionally builds the flow tests.
 
 ## How the code follows the labs
@@ -116,10 +116,10 @@ automatically enters gameplay. Escape is reserved for pausing gameplay.
 
 | Action | Result | Data behavior |
 | --- | --- | --- |
-| Start | Cutscene, then Playing | Reset placeholders and both timers |
+| Start | Cutscene, then Playing | Reset players, deployment, projectiles and timers |
 | Escape / HUD Pause | Paused | Preserve the current session |
 | Continue / Escape while paused | Playing | Preserve values and resume the gameplay timer |
-| Restart | Playing directly | Reset placeholders, selected card and timers |
+| Restart | Playing directly | Reset players, deployment, projectiles and timers |
 | Main Menu | Main Menu | Reset session values and intro timer |
 | `finishGame(true)` | Won | Stop gameplay updates |
 | `finishGame(false)` | Lost | Stop gameplay updates |
@@ -135,8 +135,8 @@ This is why pause does not need a second render loop or a blocking `while` loop.
 The game controller also owns the shared `Environment`, available through
 `getEnvironment()`. It advances the environment with the same delta time only
 while Playing. Start, Restart and Main Menu reset its lane selection and animation
-timer; Continue preserves both. These resets apply to menu buttons and keyboard
-shortcuts alike, without duplicating button coordinates in the main callbacks.
+timer; Continue preserves both. Menu buttons use these shared reset functions
+without duplicating reset behavior in the main callbacks.
 
 When player/enemy modules are ready, put their updates in the Playing branch of
 `updateGame`, or gate their update calls with `isGameplayRunning()`. Their inputs
@@ -148,24 +148,21 @@ three waves is defeated, and `finishGame(false)` when an enemy reaches the home
 base. The flow controller handles the resulting screen; it does not invent wave
 or collision logic before those modules exist.
 
-The current reset calls `resetGamePlaceholders()` because the UI owns the test
-coins and health, and `environment.reset()` for the battlefield. Add the real player/enemy reset functions here
-when the team integrates those modules. Continue must not call those resets.
+The current reset calls `resetDeployment()`, `resetPlayers()`,
+`resetPlayerCombat()`, and `environment.reset()`, alongside the cutscene reset.
+Continue preserves that state. The enemy team must add its enemy/wave/drop resets
+when those modules are integrated.
 
 ## 5. Try it and inspect it
 
 Build normally, launch `OpenGLStarter`, and click Start. Watch the full 16 seconds.
-Then test Escape, Continue, Restart, and Main Menu. The existing development
-shortcuts are still available for independent module testing:
+Then test Escape, Continue, Restart, and Main Menu. Select an affordable card and
+click a lane to buy one player. With no armed card, lane clicks toggle selection;
+W/Up and S/Down control eligible players in all selected lanes.
 
-- `C`: start a fresh intro.
-- `1`: return to Main Menu; `2`: reset directly into Playing.
-- `3`: pause Playing; `4` / `5`: finish a Playing session as Won / Lost.
-- Up/Down or +/-: change test coins while Playing; `H`: test health damage.
-- `R`: restart Playing.
-
-These shortcuts are test controls, including `2` which bypasses the intro.
-Remove the development shortcuts when real gameplay is ready for submission.
+The former currency, damage, free-spawn, and forced-state development shortcuts
+have been removed by Member 2. See [MEMBER2.md](MEMBER2.md) for attack/deployment
+behavior and the remaining enemy-module integration.
 
 To enable the automated checks with CMake on PATH:
 

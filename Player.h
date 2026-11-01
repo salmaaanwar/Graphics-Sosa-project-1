@@ -32,6 +32,8 @@ struct Player {
     float poseTimer;
     bool blockedByEnemy;
     float animTime;
+    float attackCooldown;
+    float attackAnimation;
 };
 
 // create a player at the left start of a lane

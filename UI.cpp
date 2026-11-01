@@ -4,34 +4,6 @@
 #include "Renderer.h"
 #include "TextRenderer.h"
 
-// HUD variables
-int collectibles = 30;
-int selectedCard = -1; // -1 = none, 0 = Melee, 1 = Ranged, 2 = Defense
-
-int getCollectibles()
-{
-    return collectibles;
-}
-
-void setCollectibles(int amount)
-{
-    collectibles = amount;
-    if (collectibles < 0) {
-        collectibles = 0;
-    }
-}
-
-int getSelectedCard()
-{
-    return selectedCard;
-}
-
-void resetGamePlaceholders()
-{
-    collectibles = 30;
-    selectedCard = -1;
-}
-
 // check if point (px, py) is inside rectangle centered at (rx, ry)
 bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh)
 {
@@ -57,15 +29,6 @@ void drawCenteredText(
     float startX = centerX - totalWidth * 0.5f;
     float startY = centerY + totalHeight * 0.5f;
     drawText(transformLocation, text, startX, startY, cellSize);
-}
-
-// check if player card is unlocked based on current coins
-bool isCardUnlocked(int cardIndex)
-{
-    if (cardIndex == 0) return collectibles >= MELEE_COST;
-    if (cardIndex == 1) return collectibles >= RANGED_COST;
-    if (cardIndex == 2) return collectibles >= DEFENSE_COST;
-    return false;
 }
 
 // set normal color or grayscale color if locked
@@ -354,10 +317,6 @@ void drawHUD(
     float mouseX,
     float mouseY
 ) {
-    if (selectedCard != -1 && !isCardUnlocked(selectedCard)) {
-        selectedCard = -1;
-    }
-
     // top bar background and bottom trim
     glUniform3f(colorLocation, 0.16f, 0.18f, 0.22f);
     drawRectangle(transformLocation, 0.0f, 0.84f, 2.8f, 0.32f);
@@ -381,7 +340,7 @@ void drawHUD(
             hovered = isPointInRect(mouseX, mouseY, cardCentersX[i], cardCenterY, cardW, cardH);
         }
 
-        bool isSelected = (unlocked && selectedCard == i);
+        bool isSelected = (unlocked && getSelectedCard() == i);
 
         // card outer border
         if (!unlocked) {
@@ -452,7 +411,7 @@ void drawHUD(
     drawText(transformLocation, "COINS", coinBoxX - 0.04f, coinBoxY + 0.062f, 0.0048f);
 
     glUniform3f(colorLocation, 1.0f, 0.92f, 0.28f);
-    drawNumber(transformLocation, collectibles, coinBoxX - 0.04f, coinBoxY + 0.012f, 0.0085f);
+    drawNumber(transformLocation, getCollectibles(), coinBoxX - 0.04f, coinBoxY + 0.012f, 0.0085f);
 
     // pause button on far right
     float pauseBtnX = 0.78f;
@@ -649,13 +608,7 @@ void handleUIMouseClick(
 
         for (int i = 0; i < 3; i++) {
             if (isPointInRect(mouseX, mouseY, cardCentersX[i], cardCenterY, cardW, cardH)) {
-                if (isCardUnlocked(i)) {
-                    if (selectedCard == i) {
-                        selectedCard = -1;
-                    } else {
-                        selectedCard = i;
-                    }
-                }
+                selectPlayerCard(i);
                 return;
             }
         }
@@ -723,61 +676,9 @@ void handleUIKeyPress(
         return;
     }
 
-    // test shortcuts for switching states
-    if (action == GLFW_PRESS) {
-        if (key == GLFW_KEY_1) returnToMainMenu();
-        if (key == GLFW_KEY_2) restartGame();
-        if (key == GLFW_KEY_3) pauseGame();
-        if (key == GLFW_KEY_4) finishGame(true);
-        if (key == GLFW_KEY_5) finishGame(false);
-        if (key == GLFW_KEY_C) startNewGame();
-    }
-
     if (!isGameplayRunning()) return;
 
-    // jump (W/Up) and duck (S/Down) for eligible players in selected lanes
+    // W/Up and S/Down are gameplay poses, never currency shortcuts.
     handlePlayerKeyPress(key, action);
-
-    // test keys for coins (= / + and -)
-    if (key == GLFW_KEY_EQUAL || key == GLFW_KEY_KP_ADD) {
-        collectibles += 5;
-    }
-    else if (key == GLFW_KEY_MINUS || key == GLFW_KEY_KP_SUBTRACT) {
-        collectibles -= 5;
-        if (collectibles < 0) {
-            collectibles = 0;
-        }
-        if (selectedCard != -1 && !isCardUnlocked(selectedCard)) {
-            selectedCard = -1;
-        }
-    }
-
-    // test key H to deal 1 damage to all active players
-    if (key == GLFW_KEY_H && action == GLFW_PRESS) {
-        for (int i = (int)getPlayers().size() - 1; i >= 0; i--) {
-            damagePlayer(i, 1);
-        }
-    }
-
-    // test keys M (Melee), N (Ranged), B (Defense) to spawn players in selected lanes
-    if (action == GLFW_PRESS && (key == GLFW_KEY_M || key == GLFW_KEY_N || key == GLFW_KEY_B)) {
-        int type = PLAYER_MELEE;
-        if (key == GLFW_KEY_N) type = PLAYER_RANGED;
-        if (key == GLFW_KEY_B) type = PLAYER_DEFENSE;
-
-        bool spawnedAny = false;
-        for (int lane = 0; lane < getEnvironment().getLaneCount(); lane++) {
-            if (getEnvironment().isLaneSelected(lane)) {
-                spawnPlayer(type, lane);
-                spawnedAny = true;
-            }
-        }
-        if (!spawnedAny) {
-            spawnPlayer(type, 0);
-        }
-    }
-
-    if (key == GLFW_KEY_R && action == GLFW_PRESS) {
-        restartGame();
-    }
+    (void)window;
 }

@@ -4,17 +4,7 @@
 #include <glm/glm.hpp>
 #include <string>
 #include "Game.h"
-
-// player card costs
-const int MELEE_COST   = 10;
-const int RANGED_COST  = 40;
-const int DEFENSE_COST = 60;
-
-// shared HUD state functions
-int getCollectibles();
-void setCollectibles(int amount);
-int getSelectedCard();
-void resetGamePlaceholders();
+#include "Deployment.h"
 
 // composite icon drawing functions
 void drawCollectibleIcon(

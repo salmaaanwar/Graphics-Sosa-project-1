@@ -16,7 +16,7 @@ constexpr float LANE_HEIGHT = 0.28f;
 constexpr float HOME_RIGHT_EDGE = -0.70f;
 constexpr float HOVER_COLOR[3] = {0.40f, 0.78f, 0.84f};
 constexpr float SELECT_COLOR[3] = {0.92f, 0.67f, 0.22f};
-constexpr bool PLACEHOLDER_TEST_MODE = true;
+constexpr bool PLACEHOLDER_TEST_MODE = false;
 
 void color(GLint location, float r, float g, float b) { glUniform3f(location, r, g, b); }
 
@@ -144,6 +144,11 @@ void Environment::handleMouseButton(int button, int action, float x, float y) {
     leftButtonDown = true;
     if (getGameState() != STATE_PLAYING) return;
     const int lane = getLaneAtPoint(x, y);
+    if (getSelectedCard() >= 0) {
+        // A purchase click does not toggle the lanes used for jump/duck input.
+        if (deploySelectedPlayer(lane)) selected[lane] = true;
+        return;
+    }
     if (lane >= 0) selected[lane] = !selected[lane];
 }
 

@@ -14,7 +14,7 @@ void resetCutscene()
 
 void updateCutscene(float deltaTime)
 {
-    if (deltaTime <= 0.0f) return;
+    if (deltaTime <= 0.0f || !std::isfinite(deltaTime)) return;
     cutsceneTime += deltaTime;
     if (cutsceneTime > CUTSCENE_DURATION) cutsceneTime = CUTSCENE_DURATION;
 }

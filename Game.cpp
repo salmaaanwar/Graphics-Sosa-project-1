@@ -2,7 +2,10 @@
 #include "Cutscene.h"
 #include "Environment.h"
 #include "Player.h"
+#include "PlayerCombat.h"
+#include "Deployment.h"
 #include "UI.h"
+#include <cmath>
 
 // Only this file stores the state. UI buttons request transitions through functions.
 static int currentGameState = STATE_MAIN_MENU;
@@ -31,8 +34,9 @@ void setGameState(int state)
 void startNewGame()
 {
     environment.reset();
-    resetGamePlaceholders();
+    resetDeployment();
     resetPlayers();
+    resetPlayerCombat();
     gameplayTime = 0.0f;
     setGameState(STATE_CUTSCENE);
 }
@@ -40,8 +44,9 @@ void startNewGame()
 void restartGame()
 {
     environment.reset();
-    resetGamePlaceholders();
+    resetDeployment();
     resetPlayers();
+    resetPlayerCombat();
     resetCutscene();
     gameplayTime = 0.0f;
     // A retry starts gameplay directly; Start from the main menu plays the intro.
@@ -51,8 +56,9 @@ void restartGame()
 void returnToMainMenu()
 {
     environment.reset();
-    resetGamePlaceholders();
+    resetDeployment();
     resetPlayers();
+    resetPlayerCombat();
     resetCutscene();
     gameplayTime = 0.0f;
     setGameState(STATE_MAIN_MENU);
@@ -86,7 +92,7 @@ float getGameplayTime()
 
 void updateGame(float deltaTime)
 {
-    if (deltaTime <= 0.0f) return;
+    if (deltaTime <= 0.0f || !std::isfinite(deltaTime)) return;
 
     if (currentGameState == STATE_CUTSCENE)
     {
@@ -96,7 +102,14 @@ void updateGame(float deltaTime)
     else if (currentGameState == STATE_PLAYING)
     {
         gameplayTime += deltaTime;
-        environment.update(deltaTime);
-        updatePlayers(deltaTime);
+        // Movement and attacks must share the same time steps: otherwise a slow
+        // frame fires every shot from the player's final position for that frame.
+        while (deltaTime > 0.0f) {
+            float step = deltaTime > 1.0f / 120.0f ? 1.0f / 120.0f : deltaTime;
+            environment.update(step);
+            updatePlayers(step);
+            updatePlayerCombat(step);
+            deltaTime -= step;
+        }
     }
 }

@@ -8,6 +8,8 @@
 - `ExampleScene.h`, `ExampleScene.cpp` — working examples.
 - `Game.h`, `Game.cpp` — shared states, timing, pause, restart and result transitions.
 - `Cutscene.h`, `Cutscene.cpp` — the 16-second animated kitchen introduction.
+- `Deployment.h`, `Deployment.cpp` — card selection, purchasing, and shared coins.
+- `PlayerCombat.h`, `PlayerCombat.cpp` — player attacks, spray projectiles, and Defense protection.
 - `CMakeLists.txt` — source files and library configuration.
 
 For Member 4's implementation and a lab-style explanation of the animation,
@@ -39,6 +41,10 @@ For MinGW or Ninja builds, the executable is usually:
 ```
 
 Save and rebuild after changing code. Launch only after a successful build.
+
+For the full test commands, results, fixed timing bugs, and remaining gameplay
+gaps, see [docs/TESTING.md](docs/TESTING.md). Optional CMake test targets cover
+game flow, player abilities, movement/input stress, and hidden-window rendering.
 
 ## Using the Renderer
 
@@ -125,22 +131,22 @@ const int STATE_WON       = 4;
 const int STATE_LOST      = 5;
 
 const int MELEE_COST   = 10; // Fly Swatter (Melee)
-const int RANGED_COST  = 40; // Spray Bottle (Long Range)
-const int DEFENSE_COST = 60; // Sticky Sheet (Defense)
+const int RANGED_COST  = 60; // Spray Bottle (2x starting budget)
+const int DEFENSE_COST = 90; // Sticky Sheet (3x starting budget)
 
 int getGameState();
 void setGameState(int state);
 int getCollectibles();
 void setCollectibles(int amount);
 int getSelectedCard();
-void resetGamePlaceholders();
+void resetDeployment();
 ```
 
 ### 2. Implemented Menus
 
 - **Main Menu (`drawMainMenu`):**
   - Displays the kitchen-themed title (`KITCHEN DEFENSE — DETERGENTS VS INSECTS`), composite character icons, and interactive hover/click buttons:
-    - **`START GAME`** — resets placeholders, plays the animated intro (`STATE_CUTSCENE`), then automatically enters `STATE_PLAYING`.
+    - **`START GAME`** — resets the session, plays the animated intro (`STATE_CUTSCENE`), then automatically enters `STATE_PLAYING`.
     - **`EXIT GAME`** — closes the application window.
 - **Pause Menu (`drawPauseMenu`):**
   - Triggered during gameplay with **`ESC`** (or by clicking the top-right **`PAUSE`** HUD button).
@@ -155,16 +161,16 @@ void resetGamePlaceholders();
 ### 3. Gameplay Top HUD & Player Cards (`drawHUD`)
 
 - **Collectibles Counter:** Drawn at the top-right with a composite soapy coin icon (`drawCollectibleIcon`) and live numeric counter (`drawNumber`), starting at `30` coins.
-- **3 Player Cards (`SWATTER` = 10, `SPRAY` = 40, `STICKY` = 60):**
+- **3 Player Cards (`SWATTER` = 10, `SPRAY` = 60, `STICKY` = 90):**
   - Each card features a multi-primitive composite icon:
     - `drawSwatterIcon` — Melee Fly Swatter
     - `drawSprayBottleIcon` — Long Range Spray Cleaning Bottle
     - `drawStickySheetIcon` — Stationary Defense Sticky Sheet Trap
   - **Locked vs. Unlocked Behavior (`collectibles >= cost`):**
-    - At `30` starting coins, only **`SWATTER` (10)** is unlocked; **`SPRAY` (40)** and **`STICKY` (60)** start locked.
+    - At `30` starting coins, only **`SWATTER` (10)** is unlocked; **`SPRAY` (60)** and **`STICKY` (90)** start locked.
     - **Locked cards (`collectibles < cost`):** Rendered completely in **grayscale** and ignore mouse hover and click events.
     - **Unlocked cards (`collectibles >= cost`):** Rendered in **full color**, highlight on mouse hover, and can be clicked to select/deselect for lane placement.
-    - **Dynamic Unlock / Re-lock:** Cards automatically unlock when `collectibles` reaches `40` or `60`, and automatically return to their locked grayscale state whenever `collectibles` drops below their cost.
+    - **Dynamic Unlock / Re-lock:** Cards automatically unlock when `collectibles` reaches `60` or `90`, and automatically return to their locked grayscale state whenever `collectibles` drops below their cost.
 
 ### 4. Reusable Unit Health Display (`drawHealthBar`)
 
@@ -182,27 +188,26 @@ void drawHealthBar(
 - Draws a segmented health bar + numeric HP count above/below any player or enemy at `(x, y)`.
 - Automatically scales the fill width by `currentHP / maxHP` and shifts color from **green** (high HP) to **yellow** (medium HP) to **red** (low HP).
 
-### 5. Standalone Test Controls
+### 5. Gameplay Controls
 
 | Input | Action |
 |---|---|
-| **Mouse Hover & Left Click** | Interact with menu buttons, HUD `PAUSE` button, and unlocked Player Cards |
-| **Left Click on Lane** | Select/deselect that lane; the integrated environment does not purchase units yet |
-| **`ESC`** | Toggle between `STATE_PLAYING` and `STATE_PAUSED` |
-| **`UP` Arrow** or **`+` (`=`)** | Add `+5` coins (test unlocking `SPRAY` at `40` and `STICKY` at `60`) |
-| **`DOWN` Arrow** or **`-`** | Subtract `-5` coins (test automatic grayscale re-locking below `60`, `40`, and `10`) |
-| **`H`** | Deal `1` damage to all placeholder units on the lanes to test `drawHealthBar` |
-| **`R`** | Restart gameplay, resetting placeholder coins, health, selection and timers |
-| **`1` / `2` / `3` / `4` / `5` / `C`** | Development controls: Main Menu (`1`), reset into Playing (`2`), pause Playing (`3`), finish Playing as Won/Lost (`4`/`5`), or replay the intro (`C`) |
+| **Mouse Hover & Left Click** | Menu buttons, HUD `PAUSE`, and affordable player cards |
+| **Card, then Left Click on Lane** | Purchase exactly one unit at that lane's left edge |
+| **Left Click on Lane without an armed card** | Select/deselect a lane; multiple lanes may be selected |
+| **W / Up** | Jump with eligible players in every selected lane |
+| **S / Down** | Duck with eligible players in every selected lane |
+| **Escape** | Pause/resume gameplay |
 
-Coin/health test controls only affect Playing. Pause and result screens freeze
-gameplay updates. Start plays the intro; Restart goes directly to fresh gameplay.
+Defense ignores jump/duck. Pause and results freeze gameplay. Start plays the
+intro; Restart begins a fresh game directly. Currency, free-spawn, damage and
+forced-state development shortcuts have been removed.
 
 ## Member 2 Environment and Lane System
 
-Added `Environment.h` and `Environment.cpp` for a four-lane countertop battlefield, selectable lane highlights, a composite food home base, kitchen details, and optional moving placeholder units with health bars. Lane geometry, colors, and placeholder mode are named constants near the top of `Environment.cpp`.
+Added `Environment.h` and `Environment.cpp` for a four-lane countertop battlefield, selectable lane highlights, a composite food home base and kitchen details. Decorative placeholder units are disabled for gameplay. Lane geometry, colors, and placeholder mode are named constants near the top of `Environment.cpp`.
 
-`main.cpp` routes gameplay-area clicks to Environment and keeps HUD/menu clicks with UI. It renders Environment before the existing HUD and pause/end overlays, while the intro uses `drawCutscene`. The shared game controller owns the Environment instance, exposed through `getEnvironment()`, advances it only while Playing, and resets it on Start, Restart and Main Menu. Continue preserves lane selection and animation time. `CMakeLists.txt` registers `Environment.cpp` for the application and optional game-flow tests. The UI placeholder lane click behavior is avoided by consuming gameplay-area clicks before `handleUIMouseClick`.
+`main.cpp` routes gameplay-area clicks to Environment and keeps HUD/menu clicks with UI. It renders Environment before the existing HUD and pause/end overlays, while the intro uses `drawCutscene`. The shared game controller owns the Environment instance, exposed through `getEnvironment()`, advances it only while Playing, and resets it on Start, Restart and Main Menu. Continue preserves lane selection and animation time. `CMakeLists.txt` registers `Environment.cpp` for the application and optional game-flow tests. Gameplay-area clicks select lanes or confirm an armed card purchase before HUD/menu handling.
 
 Public API:
 
@@ -225,7 +230,10 @@ void clearSelection();
 void reset();
 ```
 
-Lane clicks currently select/deselect lanes without purchasing units. Combat, spawning, waves and purchased-unit placement still need gameplay modules. The `H` key affects only the separate UI placeholder scene; Environment currently renders fixed placeholder health values.
+Lane clicks now purchase one unit when a card is armed; otherwise they toggle
+selection. Player attacks, projectiles, and Defense routing are implemented in
+`PlayerCombat`. Enemy models, enemy movement/attacks, enemy HP, waves, and drops
+still need their owning members' gameplay modules and the enemy adapter connection.
 
 
 ## Member 1 — Player Models, Movement, and Health (`Player.h` / `Player.cpp`)
@@ -260,3 +268,18 @@ std::vector<Player>& getPlayers();
 void resetPlayers();
 void drawPlayers(GLint transformLocation, GLint colorLocation, int circleVertexStart, int circleVertexCount, int triangleVertexStart);
 ```
+
+
+## Member 2 - Player Attacks, Defense, and Deployment
+
+`Deployment.h/.cpp` connects the existing cards to actual purchases.
+`PlayerCombat.h/.cpp` implements automatic one-damage swatter swings and cleaning
+spray projectiles, attack animations, same-lane swept collision, and sticky-sheet
+protection through Member 1's HP system. Prices are 10/60/90, with 30 starting
+coins; 60 and 90 use 2x/3x the starting budget as the chosen unlock baseline.
+
+See [docs/MEMBER2.md](docs/MEMBER2.md) for controls, the explicit purchasing rule,
+lab-style implementation notes, enemy integration functions for Members 3/4,
+reset behavior, and build/test instructions. The enemy adapter has no production
+provider yet; its test-only provider verifies damage and removal without adding
+another member's enemy or health implementation.

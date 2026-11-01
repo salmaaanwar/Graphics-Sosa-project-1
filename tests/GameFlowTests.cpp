@@ -86,7 +86,7 @@ static void testPauseAndRestart()
     handleUIMouseClick(nullptr, 0.0f, -0.14f);
     check(isGameplayRunning(), "pause-menu Restart goes directly to gameplay");
     check(near(getGameplayTime(), 0.0f), "Restart clears gameplay time");
-    check(getCollectibles() == 30 && getSelectedCard() == -1, "Restart resets placeholder data");
+    check(getCollectibles() == 30 && getSelectedCard() == -1, "Restart resets deployment data");
 
     pauseGame();
     handleUIMouseClick(nullptr, 0.0f, -0.38f);
@@ -166,13 +166,13 @@ static void testEnvironmentAndGameFlow()
     clickLane(0);
     check(!environment.isLaneSelected(0), "clicking again deselects a lane");
 
-    // All UI/development reset paths must reset the same Environment instance.
+    // Removed development keys must not reset an active game or its lanes.
     for (int key : {GLFW_KEY_R, GLFW_KEY_2, GLFW_KEY_C, GLFW_KEY_1})
     {
         restartGame();
         clickLane(1);
         handleUIKeyPress(nullptr, key, GLFW_PRESS);
-        check(environment.getSelectedLanes().empty(), "keyboard session resets clear lanes");
+        check(environment.isLaneSelected(1) && isGameplayRunning(), "development keys do not reset gameplay");
     }
 
     restartGame();

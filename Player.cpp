@@ -1,4 +1,5 @@
 #include "Player.h"
+#include "PlayerCombat.h"
 #include "Environment.h"
 #include "Game.h"
 #include "Renderer.h"
@@ -10,9 +11,6 @@ const float PLAYER_SPEED       = 0.14f;
 const float JUMP_DUCK_DURATION = 0.65f;
 const float JUMP_OFFSET_Y      = 0.065f;
 const float DUCK_OFFSET_Y      = -0.045f;
-
-// spawn starter players on reset so Member 1 features can be tested right away
-const bool SPAWN_STARTER_PLAYERS = true;
 
 // active players on the lanes
 static std::vector<Player> players;
@@ -44,7 +42,7 @@ void setPlayerColor(GLint colorLocation, float r, float g, float b, int hp, int 
 int spawnPlayer(int type, int lane)
 {
     Environment& env = getEnvironment();
-    if (lane < 0 || lane >= env.getLaneCount()) {
+    if (type < PLAYER_MELEE || type > PLAYER_DEFENSE || lane < 0 || lane >= env.getLaneCount()) {
         return -1;
     }
 
@@ -67,6 +65,8 @@ int spawnPlayer(int type, int lane)
     p.poseTimer = 0.0f;
     p.blockedByEnemy = false;
     p.animTime = 0.0f;
+    p.attackCooldown = 0.0f;
+    p.attackAnimation = 0.0f;
 
     players.push_back(p);
     return (int)players.size() - 1;
@@ -75,12 +75,6 @@ int spawnPlayer(int type, int lane)
 void resetPlayers()
 {
     players.clear();
-
-    if (SPAWN_STARTER_PLAYERS) {
-        spawnPlayer(PLAYER_MELEE, 0);
-        spawnPlayer(PLAYER_RANGED, 2);
-        spawnPlayer(PLAYER_DEFENSE, 3);
-    }
 }
 
 void damagePlayer(int index, int damage)
@@ -114,7 +108,7 @@ void clearAllPlayerBlocks()
 
 void updatePlayers(float dt)
 {
-    if (dt <= 0.0f) return;
+    if (dt <= 0.0f || !std::isfinite(dt)) return;
 
     Environment& env = getEnvironment();
     float maxRightX = env.getLaneEndX() - 0.06f;
@@ -200,7 +194,11 @@ void drawMeleePlayer(
     if (!p.blockedByEnemy) {
         step = 0.012f * sinf(p.animTime * 8.0f);
     }
-    float armSwing = 20.0f * sinf(p.animTime * 6.0f);
+    float strike = p.attackAnimation > 0.0f
+        ? sinf((1.0f - p.attackAnimation / PLAYER_ATTACK_ANIMATION_TIME) * 3.14159265f) : 0.0f;
+    float armSwing = -65.0f * strike;
+    float headX = p.x + 0.040f * strike;
+    float headY = p.y - 0.020f * strike;
 
     // walking feet
     setPlayerColor(colorLocation, 0.18f, 0.20f, 0.24f, p.hp, p.maxHp);
@@ -218,29 +216,29 @@ void drawMeleePlayer(
 
     // swatter head outer frame
     setPlayerColor(colorLocation, 0.95f, 0.28f, 0.32f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x, p.y + 0.38f * scaleY, 0.96f * scaleX, 0.86f * scaleY);
+    drawRectangle(transformLocation, headX, headY + 0.38f * scaleY, 0.96f * scaleX, 0.86f * scaleY);
 
     // inner mesh background
     setPlayerColor(colorLocation, 0.55f, 0.12f, 0.16f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x, p.y + 0.38f * scaleY, 0.76f * scaleX, 0.66f * scaleY);
+    drawRectangle(transformLocation, headX, headY + 0.38f * scaleY, 0.76f * scaleX, 0.66f * scaleY);
 
     // mesh grid lines
     setPlayerColor(colorLocation, 1.0f, 0.55f, 0.58f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x - 0.20f * scaleX, p.y + 0.38f * scaleY, 0.06f * scaleX, 0.66f * scaleY);
-    drawRectangle(transformLocation, p.x,                  p.y + 0.38f * scaleY, 0.06f * scaleX, 0.66f * scaleY);
-    drawRectangle(transformLocation, p.x + 0.20f * scaleX, p.y + 0.38f * scaleY, 0.06f * scaleX, 0.66f * scaleY);
-    drawRectangle(transformLocation, p.x, p.y + 0.18f * scaleY, 0.76f * scaleX, 0.06f * scaleY);
-    drawRectangle(transformLocation, p.x, p.y + 0.38f * scaleY, 0.76f * scaleX, 0.06f * scaleY);
-    drawRectangle(transformLocation, p.x, p.y + 0.58f * scaleY, 0.76f * scaleX, 0.06f * scaleY);
+    drawRectangle(transformLocation, headX - 0.20f * scaleX, headY + 0.38f * scaleY, 0.06f * scaleX, 0.66f * scaleY);
+    drawRectangle(transformLocation, headX,                  headY + 0.38f * scaleY, 0.06f * scaleX, 0.66f * scaleY);
+    drawRectangle(transformLocation, headX + 0.20f * scaleX, headY + 0.38f * scaleY, 0.06f * scaleX, 0.66f * scaleY);
+    drawRectangle(transformLocation, headX, headY + 0.18f * scaleY, 0.76f * scaleX, 0.06f * scaleY);
+    drawRectangle(transformLocation, headX, headY + 0.38f * scaleY, 0.76f * scaleX, 0.06f * scaleY);
+    drawRectangle(transformLocation, headX, headY + 0.58f * scaleY, 0.76f * scaleX, 0.06f * scaleY);
 
     // eyes looking right
     setPlayerColor(colorLocation, 0.98f, 0.98f, 0.95f, p.hp, p.maxHp);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x - 0.14f * scaleX, p.y + 0.44f * scaleY, 0.13f * scaleX);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x + 0.18f * scaleX, p.y + 0.44f * scaleY, 0.13f * scaleX);
+    drawCircle(transformLocation, circleVertexStart, circleVertexCount, headX - 0.14f * scaleX, headY + 0.44f * scaleY, 0.13f * scaleX);
+    drawCircle(transformLocation, circleVertexStart, circleVertexCount, headX + 0.18f * scaleX, headY + 0.44f * scaleY, 0.13f * scaleX);
 
     setPlayerColor(colorLocation, 0.10f, 0.14f, 0.18f, p.hp, p.maxHp);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x - 0.10f * scaleX, p.y + 0.44f * scaleY, 0.06f * scaleX);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x + 0.22f * scaleX, p.y + 0.44f * scaleY, 0.06f * scaleX);
+    drawCircle(transformLocation, circleVertexStart, circleVertexCount, headX - 0.10f * scaleX, headY + 0.44f * scaleY, 0.06f * scaleX);
+    drawCircle(transformLocation, circleVertexStart, circleVertexCount, headX + 0.22f * scaleX, headY + 0.44f * scaleY, 0.06f * scaleX);
 
     // swinging weapon arm in front
     setPlayerColor(colorLocation, 0.92f, 0.30f, 0.32f, p.hp, p.maxHp);
@@ -266,7 +264,9 @@ void drawRangedPlayer(
     if (!p.blockedByEnemy) {
         step = 0.012f * sinf(p.animTime * 8.0f);
     }
-    float triggerPull = 8.0f * sinf(p.animTime * 6.0f);
+    float sprayPulse = p.attackAnimation > 0.0f
+        ? sinf((1.0f - p.attackAnimation / PLAYER_ATTACK_ANIMATION_TIME) * 3.14159265f) : 0.0f;
+    float triggerPull = -22.0f * sprayPulse;
 
     // walking feet
     setPlayerColor(colorLocation, 0.14f, 0.35f, 0.55f, p.hp, p.maxHp);
@@ -306,10 +306,12 @@ void drawRangedPlayer(
     setPlayerColor(colorLocation, 0.88f, 0.18f, 0.18f, p.hp, p.maxHp);
     drawRectangle(transformLocation, p.x + 0.24f * scaleX, p.y + 0.38f * scaleY, 0.10f * scaleX, 0.32f * scaleY, 22.0f + triggerPull);
 
-    // small spray mist droplets at nozzle
-    setPlayerColor(colorLocation, 0.55f, 0.92f, 1.0f, p.hp, p.maxHp);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x + 0.50f * scaleX, p.y + 0.66f * scaleY, 0.07f * scaleX);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x + 0.64f * scaleX, p.y + 0.56f * scaleY, 0.05f * scaleX);
+    // Mist appears only while the trigger is firing; moving shots are separate.
+    if (p.attackAnimation > 0.0f) {
+        setPlayerColor(colorLocation, 0.55f, 0.92f, 1.0f, p.hp, p.maxHp);
+        drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x + (0.50f + sprayPulse * 0.12f) * scaleX, p.y + 0.66f * scaleY, 0.07f * scaleX);
+        drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x + (0.64f + sprayPulse * 0.12f) * scaleX, p.y + 0.56f * scaleY, 0.05f * scaleX);
+    }
 }
 
 // detailed stationary defense sticky sheet player model
@@ -361,6 +363,12 @@ void drawPlayers(
 ) {
     for (int i = 0; i < (int)players.size(); i++) {
         const Player& p = players[i];
+
+        // A small green underline marks allies currently protected by a sheet.
+        if (p.type != PLAYER_DEFENSE && getPlayerDamageReceiver(i, getEnvironment().getLaneEndX()) != i) {
+            glUniform3f(colorLocation, 0.30f, 0.85f, 0.45f);
+            drawRectangle(transformLocation, p.x, p.y - 0.105f, 0.09f, 0.008f);
+        }
 
         if (p.type == PLAYER_MELEE) {
             drawMeleePlayer(p, transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
