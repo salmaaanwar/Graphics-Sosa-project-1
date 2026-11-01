@@ -14,6 +14,7 @@
 #include "Environment.h"
 #include "Player.h"
 #include "PlayerCombat.h"
+#include "Enemy.h"
 
 glm::mat4 projection = glm::mat4(1.0f);
 
@@ -139,7 +140,8 @@ int main()
     glfwSwapInterval(1); // Match Lab 4: avoid drawing more frames than the display needs.
 
     int version = gladLoadGL(glfwGetProcAddress);
-    if (version == 0){
+    if (version == 0)
+    {
         std::cerr << "Failed to initialize OpenGL context\n";
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -265,7 +267,7 @@ int main()
 
     const bool showExamples = false;
     double lastFrame = glfwGetTime();
-    Environment& environment = getEnvironment();
+    Environment &environment = getEnvironment();
 
     // Render loop
     while (!glfwWindowShouldClose(window))
@@ -275,7 +277,8 @@ int main()
         float deltaTime = static_cast<float>(currentFrame - lastFrame);
         lastFrame = currentFrame;
 
-        if (!showExamples) updateGame(deltaTime);
+        if (!showExamples)
+            updateGame(deltaTime);
 
         glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -318,11 +321,12 @@ int main()
             if (state == STATE_CUTSCENE)
             {
                 drawCutscene(transformLocation, colorLocation, circleVertexStart,
-                    circleVertexCount, triangleVertexStart);
+                             circleVertexCount, triangleVertexStart);
             }
             else if (state == STATE_PLAYING)
             {
                 environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawEnemies(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayerCombat(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
                 drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
@@ -331,6 +335,7 @@ int main()
             else if (state == STATE_PAUSED)
             {
                 environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawEnemies(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayerCombat(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
                 drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart, -99.0f, -99.0f);
@@ -339,6 +344,7 @@ int main()
             else if (state == STATE_WON || state == STATE_LOST)
             {
                 environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawEnemies(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayerCombat(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
                 drawWinLoseMenu(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
