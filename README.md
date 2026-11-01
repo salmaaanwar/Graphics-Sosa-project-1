@@ -226,3 +226,37 @@ void reset();
 ```
 
 Lane clicks currently select/deselect lanes without purchasing units. Combat, spawning, waves and purchased-unit placement still need gameplay modules. The `H` key affects only the separate UI placeholder scene; Environment currently renders fixed placeholder health values.
+
+
+## Member 1 — Player Models, Movement, and Health (`Player.h` / `Player.cpp`)
+
+Added `Player.h` and `Player.cpp` for shared player instances, detailed gameplay models (adapted from the Swatter, Spray Bottle, and Sticky Sheet icons), automatic rightward movement for Melee and Long Range, stationary Defense, jumping (`W`/`Up`) and ducking (`S`/`Down`) in selected lanes, health initialization (`5`, `5`, `7`), progressive redness as health decreases, `drawHealthBar` connection, and removal on defeat.
+
+Shared API in `Player.h`:
+
+```cpp
+const int PLAYER_MELEE   = 0;
+const int PLAYER_RANGED  = 1;
+const int PLAYER_DEFENSE = 2;
+
+const int MELEE_MAX_HP   = 5;
+const int RANGED_MAX_HP  = 5;
+const int DEFENSE_MAX_HP = 7;
+
+const int POSE_NORMAL  = 0;
+const int POSE_JUMPING = 1;
+const int POSE_DUCKING = 2;
+
+const float PLAYER_HALF_WIDTH  = 0.045f;
+const float PLAYER_HALF_HEIGHT = 0.075f;
+
+int spawnPlayer(int type, int lane);
+void updatePlayers(float dt);
+void handlePlayerKeyPress(int key, int action);
+void damagePlayer(int index, int damage);
+void setPlayerBlocked(int index, bool blocked);
+void clearAllPlayerBlocks();
+std::vector<Player>& getPlayers();
+void resetPlayers();
+void drawPlayers(GLint transformLocation, GLint colorLocation, int circleVertexStart, int circleVertexCount, int triangleVertexStart);
+```

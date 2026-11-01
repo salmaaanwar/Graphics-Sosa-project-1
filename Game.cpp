@@ -1,6 +1,7 @@
 #include "Game.h"
 #include "Cutscene.h"
 #include "Environment.h"
+#include "Player.h"
 #include "UI.h"
 
 // Only this file stores the state. UI buttons request transitions through functions.
@@ -31,6 +32,7 @@ void startNewGame()
 {
     environment.reset();
     resetGamePlaceholders();
+    resetPlayers();
     gameplayTime = 0.0f;
     setGameState(STATE_CUTSCENE);
 }
@@ -39,6 +41,7 @@ void restartGame()
 {
     environment.reset();
     resetGamePlaceholders();
+    resetPlayers();
     resetCutscene();
     gameplayTime = 0.0f;
     // A retry starts gameplay directly; Start from the main menu plays the intro.
@@ -49,6 +52,7 @@ void returnToMainMenu()
 {
     environment.reset();
     resetGamePlaceholders();
+    resetPlayers();
     resetCutscene();
     gameplayTime = 0.0f;
     setGameState(STATE_MAIN_MENU);
@@ -93,6 +97,6 @@ void updateGame(float deltaTime)
     {
         gameplayTime += deltaTime;
         environment.update(deltaTime);
-        // Future player/enemy updates go here, so they also stop during pause/loss.
+        updatePlayers(deltaTime);
     }
 }

@@ -1,4 +1,3 @@
-
 cmake_minimum_required(VERSION 3.10)
 project(OpenGLStarter)
 
@@ -19,6 +18,7 @@ add_executable(OpenGLStarter
     Game.cpp
     Cutscene.cpp
     Environment.cpp
+    Player.cpp
 )
 
 target_include_directories(OpenGLStarter PRIVATE external/glad/include)
@@ -36,6 +36,7 @@ if(BUILD_GAME_FLOW_TESTS)
         Game.cpp
         Cutscene.cpp
         Environment.cpp
+        Player.cpp
         UI.cpp
         Renderer.cpp
         TextRenderer.cpp

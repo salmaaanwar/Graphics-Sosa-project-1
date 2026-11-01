@@ -12,6 +12,7 @@
 #include "Game.h"
 #include "Cutscene.h"
 #include "Environment.h"
+#include "Player.h"
 
 glm::mat4 projection = glm::mat4(1.0f);
 
@@ -322,18 +323,21 @@ int main()
             else if (state == STATE_PLAYING)
             {
                 environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
                         mouseWorld.x, mouseWorld.y);
             }
             else if (state == STATE_PAUSED)
             {
                 environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart, -99.0f, -99.0f);
                 drawPauseMenu(transformLocation, colorLocation, mouseWorld.x, mouseWorld.y);
             }
             else if (state == STATE_WON || state == STATE_LOST)
             {
                 environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
+                drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawWinLoseMenu(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
                                 state == STATE_WON, mouseWorld.x, mouseWorld.y);
             }

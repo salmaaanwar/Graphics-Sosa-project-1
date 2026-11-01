@@ -89,19 +89,6 @@ void drawKitchenDetails(GLint t, GLint c, int firstCircle, int circleCount, int 
     circle(t, c, firstCircle, circleCount, 0.88f, -0.85f, 0.006f, 0.92f, 0.88f, 0.73f);
     (void)firstTriangle;
 }
-
-void drawPlaceholderUnit(GLint t, GLint c, int firstCircle, int circleCount, float x, float y, bool insect) {
-    if (insect) {
-        circle(t, c, firstCircle, circleCount, x, y, 0.045f, 0.22f, 0.16f, 0.11f);
-        circle(t, c, firstCircle, circleCount, x + 0.035f, y + 0.015f, 0.025f, 0.32f, 0.22f, 0.14f);
-        circle(t, c, firstCircle, circleCount, x + 0.048f, y + 0.023f, 0.007f, 0.95f, 0.18f, 0.10f);
-        rect(t, c, x, y - 0.035f, 0.018f, 0.045f, 0.20f, 0.15f, 0.10f, 45.0f);
-    } else {
-        rect(t, c, x, y, 0.055f, 0.11f, 0.22f, 0.61f, 0.82f);
-        rect(t, c, x, y + 0.065f, 0.055f, 0.025f, 0.16f, 0.18f, 0.20f);
-        circle(t, c, firstCircle, circleCount, x + 0.015f, y + 0.01f, 0.014f, 0.76f, 0.92f, 0.95f);
-    }
-}
 }
 
 void Environment::update(float dt) { elapsed += std::max(0.0f, dt); }
@@ -136,22 +123,13 @@ void Environment::render(GLint transformLocation, GLint colorLocation,
     drawKitchenDetails(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
 
     if (PLACEHOLDER_TEST_MODE) {
-        const int playerLanes[] = {0, 2, 3};
         const int enemyLanes[] = {0, 1, 3};
-        for (int i = 0; i < 3; ++i) {
-            const int lane = playerLanes[i];
-            const float travel = std::fmod(elapsed * 0.12f + i * 0.36f, 0.48f);
-            const float x = LANE_START_X + 0.12f + travel;
-            const float y = getLaneCenterY(lane);
-            drawPlaceholderUnit(transformLocation, colorLocation, circleVertexStart, circleVertexCount, x, y, false);
-            drawHealthBar(transformLocation, colorLocation, x, y + 0.085f, 5 - (i % 2), 5);
-        }
         for (int i = 0; i < 3; ++i) {
             const int lane = enemyLanes[i];
             const float travel = std::fmod(elapsed * 0.10f + i * 0.28f, 0.46f);
             const float x = LANE_END_X - 0.12f - travel;
             const float y = getLaneCenterY(lane);
-            drawPlaceholderUnit(transformLocation, colorLocation, circleVertexStart, circleVertexCount, x, y, true);
+            drawMenuInsect(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart, x, y - 0.01f, 0.11f);
             drawHealthBar(transformLocation, colorLocation, x, y + 0.085f, 4, 5);
         }
     }
