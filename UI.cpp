@@ -3,8 +3,7 @@
 #include "TextRenderer.h"
 #include <iostream>
 
-// Shared state variables
-int currentGameState = STATE_MAIN_MENU;
+// HUD placeholder values; Game.cpp owns the shared game state.
 int collectibles = 30; // Starts with 30 coins (enough for 3 Melee players at cost 10)
 int selectedCard = -1; // -1 = none, 0 = Melee, 1 = Ranged, 2 = Defense
 
@@ -13,16 +12,6 @@ int testMeleeHP   = 5; // Melee max HP = 5
 int testRangedHP  = 4; // Ranged max HP = 5
 int testDefenseHP = 7; // Defense max HP = 7
 int testEnemyHP   = 3; // Enemy max HP = 5
-
-int getGameState()
-{
-    return currentGameState;
-}
-
-void setGameState(int state)
-{
-    currentGameState = state;
-}
 
 int getCollectibles()
 {
@@ -887,40 +876,23 @@ void drawUI(
     float mouseX,
     float mouseY
 ) {
-    if (currentGameState == STATE_MAIN_MENU) {
+    if (getGameState() == STATE_MAIN_MENU) {
         drawMainMenu(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart, mouseX, mouseY);
     }
-    else if (currentGameState == STATE_CUTSCENE) {
-        // Placeholder screen for Member 4's Cutscene state with button to enter gameplay
-        glUniform3f(colorLocation, 0.12f, 0.15f, 0.20f);
-        drawRectangle(transformLocation, 0.0f, 0.0f, 2.8f, 2.0f);
-
-        glUniform3f(colorLocation, 1.0f, 0.90f, 0.30f);
-        drawCenteredText(transformLocation, "INTRO CUTSCENE", 0.0f, 0.35f, 0.011f);
-
-        drawSwatterIcon(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
-                        -0.35f, 0.0f, 0.16f, false);
-        drawPlaceholderInsect(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
-                              0.35f, 0.0f, 0.18f);
-
-        bool skipHovered = isPointInRect(mouseX, mouseY, 0.0f, -0.42f, 0.72f, 0.18f);
-        drawButton(transformLocation, colorLocation, 0.0f, -0.42f, 0.72f, 0.18f,
-                   "CONTINUE", 0.0075f, skipHovered, 0.20f, 0.60f, 0.32f);
-    }
-    else if (currentGameState == STATE_PLAYING) {
+    else if (getGameState() == STATE_PLAYING) {
         drawPlayingPlaceholderScene(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
         drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart, mouseX, mouseY);
     }
-    else if (currentGameState == STATE_PAUSED) {
+    else if (getGameState() == STATE_PAUSED) {
         // Draw the paused game + HUD behind the Pause Menu
         drawPlayingPlaceholderScene(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
         drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart, -99.0f, -99.0f);
         drawPauseMenu(transformLocation, colorLocation, mouseX, mouseY);
     }
-    else if (currentGameState == STATE_WON) {
+    else if (getGameState() == STATE_WON) {
         drawWinLoseMenu(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart, true, mouseX, mouseY);
     }
-    else if (currentGameState == STATE_LOST) {
+    else if (getGameState() == STATE_LOST) {
         drawWinLoseMenu(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart, false, mouseX, mouseY);
     }
 }
@@ -930,11 +902,10 @@ void handleUIMouseClick(
     float mouseX,
     float mouseY
 ) {
-    if (currentGameState == STATE_MAIN_MENU) {
+    if (getGameState() == STATE_MAIN_MENU) {
         // START Button
         if (isPointInRect(mouseX, mouseY, 0.0f, 0.02f, 0.68f, 0.20f)) {
-            resetGamePlaceholders();
-            currentGameState = STATE_PLAYING;
+            startNewGame();
             return;
         }
         // EXIT Button
@@ -943,13 +914,7 @@ void handleUIMouseClick(
             return;
         }
     }
-    else if (currentGameState == STATE_CUTSCENE) {
-        if (isPointInRect(mouseX, mouseY, 0.0f, -0.42f, 0.72f, 0.18f)) {
-            currentGameState = STATE_PLAYING;
-            return;
-        }
-    }
-    else if (currentGameState == STATE_PLAYING) {
+    else if (getGameState() == STATE_PLAYING) {
         // Check 3 Player Cards in Top HUD
         const float cardCentersX[3] = { -0.74f, -0.44f, -0.14f };
         const float cardCenterY = 0.84f;
@@ -972,7 +937,7 @@ void handleUIMouseClick(
 
         // Check Pause Button on Top Right of HUD
         if (isPointInRect(mouseX, mouseY, 0.78f, 0.84f, 0.26f, 0.14f)) {
-            currentGameState = STATE_PAUSED;
+            pauseGame();
             return;
         }
 
@@ -989,42 +954,38 @@ void handleUIMouseClick(
             return;
         }
     }
-    else if (currentGameState == STATE_PAUSED) {
+    else if (getGameState() == STATE_PAUSED) {
         float btnW = 0.78f;
         float btnH = 0.17f;
 
         // CONTINUE
         if (isPointInRect(mouseX, mouseY, 0.0f, 0.10f, btnW, btnH)) {
-            currentGameState = STATE_PLAYING;
+            resumeGame();
             return;
         }
         // RESTART
         if (isPointInRect(mouseX, mouseY, 0.0f, -0.14f, btnW, btnH)) {
-            resetGamePlaceholders();
-            currentGameState = STATE_PLAYING;
+            restartGame();
             return;
         }
         // RETURN TO MAIN MENU
         if (isPointInRect(mouseX, mouseY, 0.0f, -0.38f, btnW, btnH)) {
-            resetGamePlaceholders();
-            currentGameState = STATE_MAIN_MENU;
+            returnToMainMenu();
             return;
         }
     }
-    else if (currentGameState == STATE_WON || currentGameState == STATE_LOST) {
+    else if (getGameState() == STATE_WON || getGameState() == STATE_LOST) {
         float btnW = 0.78f;
         float btnH = 0.18f;
 
         // RESTART
         if (isPointInRect(mouseX, mouseY, 0.0f, -0.04f, btnW, btnH)) {
-            resetGamePlaceholders();
-            currentGameState = STATE_PLAYING;
+            restartGame();
             return;
         }
         // RETURN TO MAIN MENU
         if (isPointInRect(mouseX, mouseY, 0.0f, -0.32f, btnW, btnH)) {
-            resetGamePlaceholders();
-            currentGameState = STATE_MAIN_MENU;
+            returnToMainMenu();
             return;
         }
     }
@@ -1041,23 +1002,26 @@ void handleUIKeyPress(
 
     // ESC toggles Pause Menu during gameplay
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-        if (currentGameState == STATE_PLAYING) {
-            currentGameState = STATE_PAUSED;
-        } else if (currentGameState == STATE_PAUSED) {
-            currentGameState = STATE_PLAYING;
+        if (getGameState() == STATE_PLAYING) {
+            pauseGame();
+        } else if (getGameState() == STATE_PAUSED) {
+            resumeGame();
         }
         return;
     }
 
-    // Standalone testing keys for switching states (1-5)
+    // Existing development shortcuts. Remove these when real gameplay is integrated.
     if (action == GLFW_PRESS) {
-        if (key == GLFW_KEY_1) currentGameState = STATE_MAIN_MENU;
-        if (key == GLFW_KEY_2) currentGameState = STATE_PLAYING;
-        if (key == GLFW_KEY_3) currentGameState = STATE_PAUSED;
-        if (key == GLFW_KEY_4) currentGameState = STATE_WON;
-        if (key == GLFW_KEY_5) currentGameState = STATE_LOST;
-        if (key == GLFW_KEY_C) currentGameState = STATE_CUTSCENE;
+        if (key == GLFW_KEY_1) returnToMainMenu();
+        if (key == GLFW_KEY_2) restartGame();
+        if (key == GLFW_KEY_3) pauseGame();
+        if (key == GLFW_KEY_4) finishGame(true);
+        if (key == GLFW_KEY_5) finishGame(false);
+        if (key == GLFW_KEY_C) startNewGame();
     }
+
+    // Paused and finished scenes must not keep accepting gameplay/test input.
+    if (!isGameplayRunning()) return;
 
     // Test keys for adding/subtracting placeholder collectibles (+ / UP and - / DOWN)
     if (key == GLFW_KEY_UP || key == GLFW_KEY_EQUAL || key == GLFW_KEY_KP_ADD) {
@@ -1083,7 +1047,7 @@ void handleUIKeyPress(
 
     // Test key 'R' to reset placeholder health and collectibles
     if (key == GLFW_KEY_R && action == GLFW_PRESS) {
-        resetGamePlaceholders();
+        restartGame();
     }
 }
 

@@ -33,5 +33,5 @@ private:
     float mouseY = -99.0f;
     bool leftButtonDown = false;
     float elapsed = 0.0f;
-    int selected[LANE_COUNT] = { false, false, false, false };
+    bool selected[LANE_COUNT] = { false, false, false, false };
 };
