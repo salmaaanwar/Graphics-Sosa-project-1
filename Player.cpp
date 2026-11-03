@@ -101,8 +101,8 @@ void setPlayerBlocked(int index, bool blocked)
 
 void clearAllPlayerBlocks()
 {
-    for (int i = 0; i < (int)players.size(); i++) {
-        players[i].blockedByEnemy = false;
+    for (Player& player : players) {
+        player.blockedByEnemy = false;
     }
 }
 
@@ -113,34 +113,33 @@ void updatePlayers(float dt)
     Environment& env = getEnvironment();
     float maxRightX = env.getLaneEndX() - 0.06f;
 
-    for (int i = 0; i < (int)players.size(); i++) {
-        Player& p = players[i];
-        p.animTime += dt;
+    for (Player& player : players) {
+        player.animTime += dt;
 
         // update jump or duck timer
-        if (p.pose != POSE_NORMAL) {
-            p.poseTimer -= dt;
-            if (p.poseTimer <= 0.0f) {
-                p.pose = POSE_NORMAL;
-                p.poseTimer = 0.0f;
+        if (player.pose != POSE_NORMAL) {
+            player.poseTimer -= dt;
+            if (player.poseTimer <= 0.0f) {
+                player.pose = POSE_NORMAL;
+                player.poseTimer = 0.0f;
             }
         }
 
         // keep player Y inside its lane plus jump/duck offset
-        float baseY = env.getLaneCenterY(p.lane) - 0.015f;
-        if (p.pose == POSE_JUMPING) {
-            p.y = baseY + JUMP_OFFSET_Y;
-        } else if (p.pose == POSE_DUCKING) {
-            p.y = baseY + DUCK_OFFSET_Y;
+        float baseY = env.getLaneCenterY(player.lane) - 0.015f;
+        if (player.pose == POSE_JUMPING) {
+            player.y = baseY + JUMP_OFFSET_Y;
+        } else if (player.pose == POSE_DUCKING) {
+            player.y = baseY + DUCK_OFFSET_Y;
         } else {
-            p.y = baseY;
+            player.y = baseY;
         }
 
         // melee and ranged move right automatically; defense stays stationary
-        if (p.type != PLAYER_DEFENSE && !p.blockedByEnemy) {
-            p.x += PLAYER_SPEED * dt;
-            if (p.x > maxRightX) {
-                p.x = maxRightX;
+        if (player.type != PLAYER_DEFENSE && !player.blockedByEnemy) {
+            player.x += PLAYER_SPEED * dt;
+            if (player.x > maxRightX) {
+                player.x = maxRightX;
             }
         }
     }
@@ -161,16 +160,16 @@ void handlePlayerKeyPress(int key, int action)
     }
 
     Environment& env = getEnvironment();
-    for (int i = 0; i < (int)players.size(); i++) {
+    for (Player& player : players) {
         // defense players are stationary and ignore jump and duck
-        if (players[i].type == PLAYER_DEFENSE) {
+        if (player.type == PLAYER_DEFENSE) {
             continue;
         }
 
         // apply jump or duck to every eligible player in all selected lanes
-        if (env.isLaneSelected(players[i].lane)) {
-            players[i].pose = newPose;
-            players[i].poseTimer = JUMP_DUCK_DURATION;
+        if (env.isLaneSelected(player.lane)) {
+            player.pose = newPose;
+            player.poseTimer = JUMP_DUCK_DURATION;
         }
     }
 }

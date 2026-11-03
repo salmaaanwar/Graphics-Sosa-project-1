@@ -7,7 +7,6 @@
 #include "PlayerCombat.h"
 #include "Collectibles.h"
 
-// active enemies
 static std::vector<Enemy> enemies;
 static std::vector<EnemyProjectile> enemyProjectiles;
 static int nextEnemyId = 0;
@@ -17,13 +16,11 @@ static void connectEnemyCombat()
     connectPlayerCombatToEnemies({countEnemies, readEnemyTarget, damageEnemyById});
 }
 
-// access the original enemy list
 std::vector<Enemy> &getEnemies()
 {
     return enemies;
 }
 
-// remove all enemies
 void resetEnemies()
 {
     enemies.clear();
@@ -31,13 +28,11 @@ void resetEnemies()
     nextEnemyId = 0;
 }
 
-// create one enemy
 int spawnEnemy(int type, int lane)
 {
     connectEnemyCombat();
     Environment &env = getEnvironment();
 
-    // reject invalid enemy types or lanes
     if (type < ENEMY_EASY || type > ENEMY_HARD)
     {
         return -1;
@@ -79,30 +74,50 @@ int spawnEnemy(int type, int lane)
 
 static void damageEnemyById(int enemyId, int amount)
 {
-    for (int i = 0; i < (int)enemies.size(); ++i) {
-        if (enemies[i].id != enemyId) continue;
-        enemies[i].hp -= amount;
-        if (enemies[i].hp <= 0) { dropCollectible(enemies[i].x, enemies[i].y); enemies.erase(enemies.begin() + i); }
+    for (auto enemy = enemies.begin(); enemy != enemies.end(); ++enemy)
+    {
+        if (enemy->id != enemyId)
+        {
+            continue;
+        }
+
+        enemy->hp -= amount;
+        if (enemy->hp <= 0)
+        {
+            int coinValue = 10;
+            if (enemy->type == ENEMY_MEDIUM) {
+                coinValue = 15;
+            } else if (enemy->type == ENEMY_HARD) {
+                coinValue = 20;
+            }
+            dropCollectible(enemy->x, enemy->y, coinValue);
+            enemies.erase(enemy);
+        }
         return;
     }
 }
 
-void damageEnemy(int enemyId, int amount) { damageEnemyById(enemyId, amount); }
+void damageEnemy(int enemyId, int amount)
+{
+    damageEnemyById(enemyId, amount);
+}
 
 // move bullets and check player hits
 void updateEnemyProjectiles(float dt)
 {
     for (int i = (int)enemyProjectiles.size() - 1; i >= 0; i--)
     {
-        float oldX = enemyProjectiles[i].x;
-        enemyProjectiles[i].x -= 0.70f * dt;
-        float newX = enemyProjectiles[i].x;
+        EnemyProjectile& projectile = enemyProjectiles[i];
+        const float oldX = projectile.x;
+        projectile.x -= 0.70f * dt;
+        const float newX = projectile.x;
+        const auto& players = getPlayers();
 
         int hitPlayer = -1;
 
-        for (int j = 0; j < (int)getPlayers().size(); j++)
+        for (int j = 0; j < (int)players.size(); j++)
         {
-            if (getPlayers()[j].lane != enemyProjectiles[i].lane)
+            if (players[j].lane != projectile.lane)
             {
                 continue;
             }
@@ -115,34 +130,22 @@ void updateEnemyProjectiles(float dt)
                 continue;
             }
 
-            bool dodged = false;
-
-            if (enemyProjectiles[i].type == ENEMY_EASY && getPlayers()[receiver].pose == POSE_DUCKING)
-            {
-                dodged = true;
-            }
-
-            if (enemyProjectiles[i].type == ENEMY_MEDIUM && getPlayers()[receiver].pose == POSE_JUMPING)
-            {
-                dodged = true;
-            }
+            const int pose = players[receiver].pose;
+            const bool dodged = (projectile.type == ENEMY_EASY && pose == POSE_DUCKING) ||
+                                (projectile.type == ENEMY_MEDIUM && pose == POSE_JUMPING);
 
             if (dodged)
             {
                 continue;
             }
 
-            float playerX = getPlayers()[receiver].x;
+            float playerX = players[receiver].x;
             float contactDistance = PLAYER_HALF_WIDTH + 0.012f;
 
             if (oldX >= playerX - contactDistance && newX <= playerX + contactDistance)
             {
                 // choose the first player along the bullet's path
-                if (hitPlayer == -1)
-                {
-                    hitPlayer = receiver;
-                }
-                else if (playerX > getPlayers()[hitPlayer].x)
+                if (hitPlayer == -1 || playerX > players[hitPlayer].x)
                 {
                     hitPlayer = receiver;
                 }
@@ -173,113 +176,107 @@ void updateEnemies(float dt)
 
     clearAllPlayerBlocks();
 
-    for (int i = 0; i < (int)enemies.size(); i++)
+    const auto& players = getPlayers();
+    for (Enemy& enemy : enemies)
     {
-        enemies[i].blockedByPlayer = false;
+        enemy.blockedByPlayer = false;
 
         // check players in the same lane
-        for (int j = 0; j < (int)getPlayers().size(); j++)
+        for (int j = 0; j < (int)players.size(); j++)
         {
-            if (enemies[i].lane == getPlayers()[j].lane)
+            if (enemy.lane == players[j].lane)
             {
-                float distance = enemies[i].x - getPlayers()[j].x;
+                float distance = enemy.x - players[j].x;
 
                 float contactDistance = ENEMY_HALF_WIDTH + PLAYER_HALF_WIDTH;
 
                 if (distance >= 0.0f && distance <= contactDistance)
                 {
-                    enemies[i].blockedByPlayer = true;
+                    enemy.blockedByPlayer = true;
                     setPlayerBlocked(j, true);
                 }
             }
         }
 
-        float speed = 0.10f;
+        float speed = 0.05f;
 
-        if (enemies[i].type == ENEMY_HARD)
+        if (enemy.type == ENEMY_HARD)
         {
-            speed = 0.18f;
+            speed = 0.09f;
         }
 
-        if (!enemies[i].blockedByPlayer)
+        if (!enemy.blockedByPlayer)
         {
-            enemies[i].x -= speed * dt;
+            enemy.x -= speed * dt;
         }
 
         // reaching the food ends the game
         float minimumX = getEnvironment().getHomeBaseRightEdgeX() + ENEMY_HALF_WIDTH;
 
-        if (enemies[i].x <= minimumX)
+        if (enemy.x <= minimumX)
         {
-            enemies[i].x = minimumX;
+            enemy.x = minimumX;
             finishGame(false);
             return;
         }
 
         // count down the attack animation
-        enemies[i].attackAnimation -= dt;
+        enemy.attackAnimation -= dt;
 
-        if (enemies[i].attackAnimation < 0.0f)
+        if (enemy.attackAnimation < 0.0f)
         {
-            enemies[i].attackAnimation = 0.0f;
+            enemy.attackAnimation = 0.0f;
         }
 
         // automatic ranged attacks
-        if (enemies[i].type == ENEMY_EASY ||
-            enemies[i].type == ENEMY_MEDIUM)
+        if (enemy.type == ENEMY_EASY ||
+            enemy.type == ENEMY_MEDIUM)
         {
+            enemy.attackCooldown -= dt;
 
-            enemies[i].attackCooldown -= dt;
-
-            if (enemies[i].attackCooldown <= 0.0f)
+            if (enemy.attackCooldown <= 0.0f)
             {
                 EnemyProjectile bullet;
 
-                bullet.type = enemies[i].type;
-                bullet.lane = enemies[i].lane;
-                bullet.x = enemies[i].x - 0.08f;
+                bullet.type = enemy.type;
+                bullet.lane = enemy.lane;
+                bullet.x = enemy.x - 0.08f;
 
-                if (enemies[i].type == ENEMY_EASY)
+                if (enemy.type == ENEMY_EASY)
                 {
-                    bullet.y = enemies[i].y + 0.045f;
+                    bullet.y = enemy.y + 0.045f;
                 }
                 else
                 {
-                    bullet.y = enemies[i].y - 0.03f;
+                    bullet.y = enemy.y - 0.03f;
                 }
 
                 enemyProjectiles.push_back(bullet);
-                enemies[i].attackAnimation = 0.20f;
-                enemies[i].attackCooldown += 1.0f;
+                enemy.attackAnimation = 0.20f;
+                enemy.attackCooldown += 1.0f;
             }
         }
         // cockroach melee attack
-        if (enemies[i].type == ENEMY_HARD)
+        if (enemy.type == ENEMY_HARD)
         {
-            enemies[i].attackCooldown -= dt;
+            enemy.attackCooldown -= dt;
 
-            if (enemies[i].attackCooldown <= 0.0f)
+            if (enemy.attackCooldown <= 0.0f)
             {
                 int target = -1;
 
-                for (int j = 0; j < (int)getPlayers().size(); j++)
+                for (int j = 0; j < (int)players.size(); j++)
                 {
-                    if (getPlayers()[j].lane == enemies[i].lane)
+                    if (players[j].lane == enemy.lane)
                     {
-                        float distance = enemies[i].x - getPlayers()[j].x;
+                        float distance = enemy.x - players[j].x;
                         float attackDistance =
                             ENEMY_HALF_WIDTH + PLAYER_HALF_WIDTH;
 
                         if (distance >= 0.0f &&
                             distance <= attackDistance)
                         {
-
-                            if (target == -1)
-                            {
-                                target = j;
-                            }
-                            else if (getPlayers()[j].x >
-                                     getPlayers()[target].x)
+                            if (target == -1 || players[j].x > players[target].x)
                             {
                                 target = j;
                             }
@@ -289,10 +286,10 @@ void updateEnemies(float dt)
 
                 if (target != -1)
                 {
-                    damagePlayerFromEnemy(target, 2, enemies[i].x);
+                    damagePlayerFromEnemy(target, 2, enemy.x);
                 }
-                enemies[i].attackAnimation = 0.20f;
-                enemies[i].attackCooldown += 0.9f;
+                enemy.attackAnimation = 0.20f;
+                enemy.attackCooldown += 0.9f;
             }
         }
     }
@@ -461,7 +458,6 @@ void drawCockroach(
     drawRectangle(transformLocation,
                   swordX, y - 0.06f, 0.012f, 0.03f);
 }
-// draw enemy models
 void drawEnemies(
     GLint transformLocation,
     GLint colorLocation,
@@ -469,14 +465,14 @@ void drawEnemies(
     int circleVertexCount,
     int triangleVertexStart)
 {
-    for (int i = 0; i < (int)enemies.size(); i++)
+    for (const Enemy& enemy : enemies)
     {
-        drawHealthBar(transformLocation, colorLocation, enemies[i].x, enemies[i].y + 0.12f, enemies[i].hp, enemies[i].maxHp);
-        float redness = 1.0f - (float)enemies[i].hp / enemies[i].maxHp;
+        drawHealthBar(transformLocation, colorLocation, enemy.x, enemy.y + 0.12f, enemy.hp, enemy.maxHp);
+        float redness = 1.0f - (float)enemy.hp / enemy.maxHp;
         glUniform3f(colorLocation, 0.75f + 0.25f * redness, 0.75f * (1.0f - redness), 0.75f * (1.0f - redness));
-        if (enemies[i].type == ENEMY_EASY)
+        if (enemy.type == ENEMY_EASY)
         {
-            float recoil = enemies[i].attackAnimation * 0.06f;
+            float recoil = enemy.attackAnimation * 0.06f;
 
             drawMenuInsect(
                 transformLocation,
@@ -484,12 +480,12 @@ void drawEnemies(
                 circleVertexStart,
                 circleVertexCount,
                 triangleVertexStart,
-                enemies[i].x + recoil,
-                enemies[i].y + 0.05f,
+                enemy.x + recoil,
+                enemy.y + 0.05f,
                 0.11f);
 
             // muzzle flash while firing
-            if (enemies[i].attackAnimation > 0.0f)
+            if (enemy.attackAnimation > 0.0f)
             {
                 glUniform3f(colorLocation, 1.0f, 0.25f, 0.05f);
 
@@ -497,24 +493,24 @@ void drawEnemies(
                     transformLocation,
                     circleVertexStart,
                     circleVertexCount,
-                    enemies[i].x + recoil - 0.08f,
-                    enemies[i].y + 0.045f,
+                    enemy.x + recoil - 0.08f,
+                    enemy.y + 0.045f,
                     0.02f);
             }
         }
-        else if (enemies[i].type == ENEMY_MEDIUM)
+        else if (enemy.type == ENEMY_MEDIUM)
         {
             drawAnt(
                 transformLocation,
                 colorLocation,
                 circleVertexStart,
                 circleVertexCount,
-                enemies[i].x,
-                enemies[i].y,
-                enemies[i].attackAnimation);
+                enemy.x,
+                enemy.y,
+                enemy.attackAnimation);
         }
 
-        else if (enemies[i].type == ENEMY_HARD)
+        else if (enemy.type == ENEMY_HARD)
         {
             drawCockroach(
                 transformLocation,
@@ -522,22 +518,21 @@ void drawEnemies(
                 circleVertexStart,
                 circleVertexCount,
                 triangleVertexStart,
-                enemies[i].x,
-                enemies[i].y,
-                enemies[i].attackAnimation);
+                enemy.x,
+                enemy.y,
+                enemy.attackAnimation);
         }
 
-        float damageRed = 1.0f - (float)enemies[i].hp / enemies[i].maxHp;
-        if (damageRed > 0.0f) {
+        if (redness > 0.0f) {
             glUniform3f(colorLocation, 0.85f, 0.12f, 0.10f);
             drawCircle(transformLocation, circleVertexStart, circleVertexCount,
-                       enemies[i].x, enemies[i].y, 0.008f + damageRed * 0.015f);
+                       enemy.x, enemy.y, 0.008f + redness * 0.015f);
         }
     }
 
-    for (int i = 0; i < (int)enemyProjectiles.size(); i++)
+    for (const EnemyProjectile& projectile : enemyProjectiles)
     {
-        if (enemyProjectiles[i].type == ENEMY_EASY)
+        if (projectile.type == ENEMY_EASY)
         {
             glUniform3f(colorLocation, 0.30f, 0.05f, 0.40f);
         }
@@ -550,13 +545,12 @@ void drawEnemies(
             transformLocation,
             circleVertexStart,
             circleVertexCount,
-            enemyProjectiles[i].x,
-            enemyProjectiles[i].y,
+            projectile.x,
+            projectile.y,
             0.012f);
     }
 }
 
-// number of enemies in the list
 int countEnemies()
 {
     return (int)enemies.size();

@@ -1,6 +1,8 @@
 #include "Game.h"
 #include "Cutscene.h"
 #include "Environment.h"
+#include "Enemy.h"
+#include "WaveManager.h"
 #include "UI.h"
 #include <cmath>
 #include <cstdlib>
@@ -201,9 +203,53 @@ static void testEnvironmentAndGameFlow()
     }
 }
 
+static void testSkipAndWaveAnnouncements()
+{
+    startNewGame();
+    handleUIMouseClick(nullptr, 0.80f, 0.86f);
+    check(isGameplayRunning(), "Skip goes straight to gameplay");
+    check(isCutsceneFinished() && near(getGameplayTime(), 0.0f), "Skip finishes only the intro");
+
+    for (int waveSize : {3, 5, 10})
+    {
+        updateWaves(1.5f);
+        pauseGame();
+        updateGame(3.0f);
+        resumeGame();
+        updateWaves(0.25f);
+        check(countEnemies() == 0, "wave waits for the two-second announcement");
+        updateWaves(0.25f);
+        check(countEnemies() == 1, "first enemy spawns after the announcement");
+        for (int i = 1; i < waveSize; ++i)
+        {
+            updateWaves(1.2f);
+        }
+        check(countEnemies() == waveSize, "the wave keeps its original spawn count");
+        resetEnemies();
+        updateWaves(0.01f);
+    }
+
+    check(getGameState() == STATE_WON, "clearing the last wave wins the game");
+}
+
+static void testEnemyMovementSpeed()
+{
+    restartGame();
+    spawnEnemy(ENEMY_EASY, 0);
+    spawnEnemy(ENEMY_MEDIUM, 1);
+    spawnEnemy(ENEMY_HARD, 2);
+    const float startX = getEnemies()[0].x;
+    updateEnemies(1.0f);
+    check(near(getEnemies()[0].x, startX - 0.05f), "easy enemy moves at half speed");
+    check(near(getEnemies()[1].x, startX - 0.05f), "medium enemy moves at half speed");
+    check(near(getEnemies()[2].x, startX - 0.09f), "hard enemy moves at half speed");
+}
+
 int main()
 {
     testIntroAndStartButton();
+    testSkipAndWaveAnnouncements();
+    testEnemyMovementSpeed();
     testFrameRates();
     testPauseAndRestart();
     testResults();

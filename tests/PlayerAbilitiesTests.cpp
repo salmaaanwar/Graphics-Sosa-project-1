@@ -1,5 +1,7 @@
+#include "Collectibles.h"
 #include "Deployment.h"
 #include "Environment.h"
+#include "Enemy.h"
 #include "Game.h"
 #include "Player.h"
 #include "PlayerCombat.h"
@@ -87,24 +89,51 @@ static void testPurchases()
     selectPlayerCard(0);
     check(!deploySelectedPlayer(0) && getPlayers().size() == 3, "insufficient funds cannot create a unit");
 
-    setCollectibles(59);
-    check(!isCardUnlocked(1), "spray stays locked below 60");
-    setCollectibles(60);
-    check(isCardUnlocked(1) && !isCardUnlocked(2), "spray unlocks at twice the starting budget");
-    selectPlayerCard(1);
-    setCollectibles(59);
-    check(getSelectedCard() == -1, "currency reduction immediately clears an unaffordable selection");
-    setCollectibles(89);
-    check(!isCardUnlocked(2), "sheet stays locked below 90");
-    setCollectibles(180);
-    selectPlayerCard(2);
-    check(deploySelectedPlayer(1), "sheet purchase succeeds at the threshold");
-    selectPlayerCard(2);
-    check(!deploySelectedPlayer(1) && getCollectibles() == 90 && getPlayers().size() == 4,
+    setCollectibles(STARTING_COLLECTIBLES);
+    check(!isCardUnlocked(PLAYER_RANGED) && !isCardUnlocked(PLAYER_DEFENSE),
+          "adding balance alone does not unlock advanced cards");
+    selectPlayerCard(PLAYER_RANGED);
+    check(getSelectedCard() == -1, "locked Spray cannot be selected");
+
+    const int enemyTypes[] = {ENEMY_EASY, ENEMY_MEDIUM, ENEMY_HARD};
+    const int dropValues[] = {10, 15, 20};
+    int expectedCoins = STARTING_COLLECTIBLES;
+    for (int pickup = 1; pickup <= 3; ++pickup) {
+        int enemyId = spawnEnemy(enemyTypes[pickup - 1], getPlayers()[0].lane);
+        Enemy& enemy = getEnemies().back();
+        enemy.x = getPlayers()[0].x;
+        enemy.y = getPlayers()[0].y;
+        damageEnemy(enemyId, enemy.hp);
+        check(getCollectibles() == expectedCoins, "defeat does not credit an uncollected drop");
+        expectedCoins += dropValues[pickup - 1];
+        updateCollectibles();
+        updateCollectibles();
+        check(getCollectibles() == expectedCoins,
+              "easy, medium and hard drops credit 10, 15 and 20 coins once");
+        check(isCardUnlocked(PLAYER_RANGED) == (pickup >= 2), "Spray unlocks on the second pickup");
+        check(isCardUnlocked(PLAYER_DEFENSE) == (pickup >= 3), "Sticky unlocks on the third pickup");
+    }
+
+    selectPlayerCard(PLAYER_RANGED);
+    setCollectibles(RANGED_COST - 1);
+    check(getSelectedCard() == -1 && !isCardUnlocked(PLAYER_RANGED),
+          "an unaffordable card grays out and clears its selection");
+    setCollectibles(RANGED_COST);
+    check(isCardUnlocked(PLAYER_RANGED), "restoring balance does not require earning the unlock again");
+    selectPlayerCard(PLAYER_RANGED);
+    check(deploySelectedPlayer(0) && getCollectibles() == 0, "Spray costs 20 coins");
+    setCollectibles(2 * DEFENSE_COST);
+    selectPlayerCard(PLAYER_DEFENSE);
+    check(deploySelectedPlayer(1) && getCollectibles() == DEFENSE_COST, "Sticky costs 30 coins");
+    selectPlayerCard(PLAYER_DEFENSE);
+    check(!deploySelectedPlayer(1) && getCollectibles() == DEFENSE_COST && getPlayers().size() == 5,
           "duplicate stationary placement is rejected before charging");
     check(deploySelectedPlayer(3) && getCollectibles() == 0, "another lane accepts one sheet");
     setCollectibles(-10);
     check(getCollectibles() == 0 && !isCardUnlocked(-1), "currency is clamped and unknown cards are locked");
+    restartGame();
+    check(getCollectibles() == 30 && !isCardUnlocked(PLAYER_RANGED) && !isCardUnlocked(PLAYER_DEFENSE),
+          "restart resets pickup progress");
 }
 
 static void testMeleeAndEnemyRemoval()

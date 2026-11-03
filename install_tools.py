@@ -1,6 +1,6 @@
 """Download MinGW, Ninja and CMake and add them to PATH (Windows).
 
-Run `python setup_tools.py` and answer the prompts. Answer "n" to the download
+Run `python install_tools.py` and answer the prompts. Answer "n" to the download
 question to point the script at tools you already have (e.g. offline machines).
 """
 import ctypes

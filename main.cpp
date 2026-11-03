@@ -16,6 +16,7 @@
 #include "PlayerCombat.h"
 #include "Enemy.h"
 #include "Collectibles.h"
+#include "WaveManager.h"
 
 glm::mat4 projection = glm::mat4(1.0f);
 
@@ -100,19 +101,24 @@ void keyCallback(GLFWwindow *window, int key, int, int action, int)
 
 void mouseButtonCallback(GLFWwindow *window, int button, int action, int)
 {
-    if (button == GLFW_MOUSE_BUTTON_LEFT)
+    if (button != GLFW_MOUSE_BUTTON_LEFT)
     {
-        glm::vec2 mouseWorld;
-        if (mouseToWorld(window, projection, mouseWorld))
-        {
-            getEnvironment().handleMouseButton(button, action, mouseWorld.x, mouseWorld.y);
-            // Lane clicks select lanes or deploy exactly one armed player card.
-            if (action == GLFW_PRESS &&
-                !(getGameState() == STATE_PLAYING && mouseWorld.y < 0.65f))
-            {
-                handleUIMouseClick(window, mouseWorld.x, mouseWorld.y);
-            }
-        }
+        return;
+    }
+
+    glm::vec2 mouseWorld;
+    if (!mouseToWorld(window, projection, mouseWorld))
+    {
+        return;
+    }
+
+    getEnvironment().handleMouseButton(button, action, mouseWorld.x, mouseWorld.y);
+
+    // The area below the HUD is handled by the battlefield during play.
+    bool clickedBattlefield = getGameState() == STATE_PLAYING && mouseWorld.y < 0.65f;
+    if (action == GLFW_PRESS && !clickedBattlefield)
+    {
+        handleUIMouseClick(window, mouseWorld.x, mouseWorld.y);
     }
 }
 
@@ -130,7 +136,21 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow *window = glfwCreateWindow(800, 600, "game", nullptr, nullptr);
+    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode *mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
+    GLFWwindow *window = nullptr;
+    if (mode)
+    {
+        glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+        glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+        glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+        glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+        window = glfwCreateWindow(mode->width, mode->height, "game", monitor, nullptr);
+    }
+    else
+    {
+        window = glfwCreateWindow(800, 600, "game", nullptr, nullptr);
+    }
     if (!window)
     {
         std::cerr << "Failed to create window\n";
@@ -323,36 +343,35 @@ int main()
             {
                 drawCutscene(transformLocation, colorLocation, circleVertexStart,
                              circleVertexCount, triangleVertexStart);
+                drawCutsceneSkipButton(transformLocation, colorLocation, mouseWorld.x, mouseWorld.y);
             }
-            else if (state == STATE_PLAYING)
+            else if (state == STATE_PLAYING || state == STATE_PAUSED ||
+                     state == STATE_WON || state == STATE_LOST)
             {
                 environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawEnemies(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayerCombat(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
-                drawCollectibles(transformLocation,colorLocation,circleVertexStart,circleVertexCount);
-                drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
-                        mouseWorld.x, mouseWorld.y);
-            }
-            else if (state == STATE_PAUSED)
-            {
-                environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
-                drawEnemies(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
-                drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
-                drawPlayerCombat(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
-                drawCollectibles(transformLocation,colorLocation,circleVertexStart,circleVertexCount);
-                drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart, -99.0f, -99.0f);
-                drawPauseMenu(transformLocation, colorLocation, mouseWorld.x, mouseWorld.y);
-            }
-            else if (state == STATE_WON || state == STATE_LOST)
-            {
-                environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
-                drawEnemies(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
-                drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
-                drawPlayerCombat(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
-                drawCollectibles(transformLocation,colorLocation,circleVertexStart,circleVertexCount);
-                drawWinLoseMenu(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
-                                state == STATE_WON, mouseWorld.x, mouseWorld.y);
+                drawCollectibles(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
+
+                if (state == STATE_PLAYING)
+                {
+                    drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount,
+                            triangleVertexStart, mouseWorld.x, mouseWorld.y);
+                    drawWaveStatus(transformLocation, colorLocation);
+                }
+                else if (state == STATE_PAUSED)
+                {
+                    // Clear the HUD hover while the pause menu is open.
+                    drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount,
+                            triangleVertexStart, -99.0f, -99.0f);
+                    drawPauseMenu(transformLocation, colorLocation, mouseWorld.x, mouseWorld.y);
+                }
+                else
+                {
+                    drawWinLoseMenu(transformLocation, colorLocation, circleVertexStart, circleVertexCount,
+                                    triangleVertexStart, state == STATE_WON, mouseWorld.x, mouseWorld.y);
+                }
             }
             else
             {

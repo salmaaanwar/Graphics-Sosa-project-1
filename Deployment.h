@@ -1,14 +1,16 @@
 #pragma once
 
-// The initially unlocked melee card costs 10; the starting budget buys three.
-// Use that 30-coin starting budget as the explicit 2x/3x unlock baseline.
+// The starting budget buys three melee units. The other cards are priced
+// at two and three times the melee cost.
 const int STARTING_COLLECTIBLES = 30;
 const int MELEE_COST = 10;
-const int RANGED_COST = 2 * STARTING_COLLECTIBLES;
-const int DEFENSE_COST = 3 * STARTING_COLLECTIBLES;
+const int RANGED_COST = 2 * MELEE_COST;
+const int DEFENSE_COST = 3 * MELEE_COST;
 
 int getCollectibles();
 void setCollectibles(int amount);
+void collectEnemyDrop(int value);
+int getRemainingUnlockDrops(int type);
 int getPlayerCost(int type);
 bool isCardUnlocked(int type);
 int getSelectedCard();

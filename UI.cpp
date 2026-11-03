@@ -1,8 +1,14 @@
 #include "UI.h"
+#include "Cutscene.h"
 #include "Environment.h"
 #include "Player.h"
 #include "Renderer.h"
 #include "TextRenderer.h"
+
+static const float SKIP_BUTTON_X = 0.80f;
+static const float SKIP_BUTTON_Y = 0.86f;
+static const float SKIP_BUTTON_WIDTH = 0.28f;
+static const float SKIP_BUTTON_HEIGHT = 0.14f;
 
 // check if point (px, py) is inside rectangle centered at (rx, ry)
 bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh)
@@ -369,16 +375,24 @@ void drawHUD(
         drawCenteredText(transformLocation, cardLabels[i], cardCentersX[i], cardCenterY + 0.095f, 0.0042f);
 
         // card icon
-        float iconY = cardCenterY + 0.005f;
+        int dropsLeft = getRemainingUnlockDrops(i);
+        float iconY = cardCenterY + (dropsLeft > 0 ? 0.016f : 0.005f);
+        float iconScale = dropsLeft > 0 ? 0.060f : 0.075f;
         if (i == 0) {
             drawSwatterIcon(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
-                            cardCentersX[i], iconY, 0.075f, !unlocked);
+                            cardCentersX[i], iconY, iconScale, !unlocked);
         } else if (i == 1) {
             drawSprayBottleIcon(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
-                                cardCentersX[i], iconY, 0.075f, !unlocked);
+                                cardCentersX[i], iconY, iconScale, !unlocked);
         } else {
             drawStickySheetIcon(transformLocation, colorLocation, circleVertexStart, circleVertexCount,
-                                cardCentersX[i], iconY, 0.072f, !unlocked);
+                                cardCentersX[i], iconY, dropsLeft > 0 ? iconScale : 0.072f, !unlocked);
+        }
+
+        if (dropsLeft > 0) {
+            std::string hint = std::to_string(dropsLeft) + (dropsLeft == 1 ? " DROP LEFT" : " DROPS LEFT");
+            glUniform3f(colorLocation, 0.72f, 0.72f, 0.72f);
+            drawCenteredText(transformLocation, hint, cardCentersX[i], cardCenterY - 0.050f, 0.0032f);
         }
 
         // bottom cost strip
@@ -473,6 +487,15 @@ void drawMainMenu(
     bool exitHovered = isPointInRect(mouseX, mouseY, 0.0f, -0.28f, btnW, btnH);
     drawButton(transformLocation, colorLocation, 0.0f, -0.28f, btnW, btnH,
                "EXIT GAME", 0.0082f, exitHovered, 0.72f, 0.22f, 0.22f);
+}
+
+void drawCutsceneSkipButton(GLint transformLocation, GLint colorLocation, float mouseX, float mouseY)
+{
+    bool hovered = isPointInRect(mouseX, mouseY, SKIP_BUTTON_X, SKIP_BUTTON_Y,
+                                 SKIP_BUTTON_WIDTH, SKIP_BUTTON_HEIGHT);
+    drawButton(transformLocation, colorLocation, SKIP_BUTTON_X, SKIP_BUTTON_Y,
+               SKIP_BUTTON_WIDTH, SKIP_BUTTON_HEIGHT, "SKIP", 0.006f, hovered,
+               0.28f, 0.35f, 0.48f);
 }
 
 // pause menu drawing
@@ -597,6 +620,13 @@ void handleUIMouseClick(
         if (isPointInRect(mouseX, mouseY, 0.0f, -0.28f, 0.68f, 0.20f)) {
             glfwSetWindowShouldClose(window, true);
             return;
+        }
+    }
+    else if (getGameState() == STATE_CUTSCENE) {
+        if (isPointInRect(mouseX, mouseY, SKIP_BUTTON_X, SKIP_BUTTON_Y,
+                          SKIP_BUTTON_WIDTH, SKIP_BUTTON_HEIGHT)) {
+            updateCutscene(CUTSCENE_DURATION);
+            setGameState(STATE_PLAYING);
         }
     }
     else if (getGameState() == STATE_PLAYING) {

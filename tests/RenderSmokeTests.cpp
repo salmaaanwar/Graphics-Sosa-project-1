@@ -78,13 +78,17 @@ int main(int argc, char** argv)
         glUniformMatrix4fv(p, 1, GL_FALSE, glm::value_ptr(projection));
         int state = getGameState();
         if (state == STATE_MAIN_MENU) drawUI(t, c, circleStart, circleCount, triangleStart, -99, -99);
-        else if (state == STATE_CUTSCENE) drawCutscene(t, c, circleStart, circleCount, triangleStart);
+        else if (state == STATE_CUTSCENE) {
+            drawCutscene(t, c, circleStart, circleCount, triangleStart);
+            drawCutsceneSkipButton(t, c, testMouse.x, testMouse.y);
+        }
         else {
             getEnvironment().render(t, c, circleStart, circleCount, triangleStart);
             drawPlayers(t, c, circleStart, circleCount, triangleStart);
             drawPlayerCombat(t, c, circleStart, circleCount);
             if (state == STATE_PLAYING || state == STATE_PAUSED)
                 drawHUD(t, c, circleStart, circleCount, triangleStart, -99, -99);
+            if (state == STATE_PLAYING) drawWaveStatus(t, c);
             if (state == STATE_PAUSED) drawPauseMenu(t, c, -99, -99);
             if (state == STATE_WON || state == STATE_LOST)
                 drawWinLoseMenu(t, c, circleStart, circleCount, triangleStart, state == STATE_WON, -99, -99);
@@ -136,12 +140,16 @@ int main(int argc, char** argv)
         keyCallback(window, GLFW_KEY_W, 0, GLFW_PRESS, 0);
         check(getPlayers()[0].pose == POSE_JUMPING, "actual key callback jumps in the selected lane");
         updateGame(0.7f);
+        for (int i = 0; i < 3; ++i) {
+            dropCollectible(getPlayers()[0].x, getPlayers()[0].y, 10);
+        }
+        updateCollectibles();
         setCollectibles(200);
         click(-0.44f, 0.84f);
         click(0, getEnvironment().getLaneCenterY(1));
         click(-0.14f, 0.84f);
         click(0, getEnvironment().getLaneCenterY(2));
-        check(getPlayers().size() == 3 && getCollectibles() == 50, "spray and sheet purchases use real callbacks");
+        check(getPlayers().size() == 3 && getCollectibles() == 200 - RANGED_COST - DEFENSE_COST, "spray and sheet purchases use real callbacks");
         updateGame(0.13f);
         render(prefix + "playing");
         click(0.78f, 0.84f);
@@ -161,6 +169,11 @@ int main(int argc, char** argv)
         click(0, -0.32f);
         check(getGameState() == STATE_MAIN_MENU, "result Main Menu callback works");
     }
+    click(0, 0.02f);
+    click(0.80f, 0.86f);
+    check(isGameplayRunning(), "actual Skip callback starts gameplay");
+    render("wave-announcement");
+    returnToMainMenu();
     click(0, -0.28f);
     check(glfwWindowShouldClose(window), "Exit button closes the actual GLFW window");
     std::cout << frames << " frames passed across five sizes: shaders, rendering, callbacks, pause and reset.\n";

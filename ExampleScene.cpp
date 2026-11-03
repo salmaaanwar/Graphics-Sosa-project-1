@@ -2,7 +2,6 @@
 #include "Renderer.h"
 #include "TextRenderer.h"
 
-//renderer usage examples
 void drawExampleScene(
     GLint transformLocation,
     GLint colorLocation,
@@ -10,7 +9,7 @@ void drawExampleScene(
     int circleVertexCount,
     int triangleVertexStart
 ){
-    //red rectangle: center, full dimentions, rotation in degrees
+    // Red rectangle with full width and height, rotated in degrees.
     glUniform3f(colorLocation, 1.0f, 0.2f, 0.2f);
     drawRectangle(
         transformLocation, 
@@ -19,7 +18,7 @@ void drawExampleScene(
         15.0f
     );
 
-    //blue circle: center and radius
+    // Blue circle positioned by its center.
     glUniform3f(colorLocation, 0.2f, 0.5f, 1.0f);
     drawCircle(
         transformLocation,
@@ -28,7 +27,7 @@ void drawExampleScene(
         0.15f
     );
 
-    //green triangle: local origin, dimensions, default zero rotation
+    // Green triangle with the default rotation.
     glUniform3f(colorLocation, 0.2f, 0.8f, 0.3f);
     drawTriangle(
         transformLocation,
@@ -37,7 +36,7 @@ void drawExampleScene(
         0.35f, 0.35f
     );
 
-    //START 125 white text
+    // White title text.
     glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
     drawText(transformLocation, 
         "START 125", 

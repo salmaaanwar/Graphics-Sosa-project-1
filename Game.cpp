@@ -1,4 +1,5 @@
 #include "Game.h"
+#include <algorithm>
 #include "Cutscene.h"
 #include "Environment.h"
 #include "Player.h"
@@ -10,7 +11,8 @@
 #include "WaveManager.h"
 #include "Collectibles.h"
 
-// Only this file stores the state. UI buttons request transitions through functions.
+static constexpr float MAX_SIMULATION_STEP = 1.0f / 120.0f;
+
 static int currentGameState = STATE_MAIN_MENU;
 static float gameplayTime = 0.0f;
 static Environment environment;
@@ -48,9 +50,9 @@ void resetGame()
     resetDeployment();
     resetPlayers();
     resetEnemies();
-
     resetPlayerCombat();
-    resetWaves(); resetCollectibles();
+    resetWaves();
+    resetCollectibles();
     gameplayTime = 0.0f;
 }
 
@@ -58,7 +60,6 @@ void restartGame()
 {
     resetGame();
     resetCutscene();
-    gameplayTime = 0.0f;
     // A retry starts gameplay directly; Start from the main menu plays the intro.
     setGameState(STATE_PLAYING);
 }
@@ -67,7 +68,6 @@ void returnToMainMenu()
 {
     resetGame();
     resetCutscene();
-    gameplayTime = 0.0f;
     setGameState(STATE_MAIN_MENU);
 }
 
@@ -118,11 +118,12 @@ void updateGame(float deltaTime)
         // frame fires every shot from the player's final position for that frame.
         while (deltaTime > 0.0f)
         {
-            float step = deltaTime > 1.0f / 120.0f ? 1.0f / 120.0f : deltaTime;
+            const float step = std::min(deltaTime, MAX_SIMULATION_STEP);
             environment.update(step);
             updateEnemies(step);
 
-            if(!isGameplayRunning()){
+            if (!isGameplayRunning())
+            {
                 break;
             }
 

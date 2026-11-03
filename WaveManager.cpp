@@ -3,20 +3,83 @@
 #include "Environment.h"
 #include "Game.h"
 #include "Renderer.h"
+#include "UI.h"
+#include <string>
 #include <cstdlib>
-static int wave=0, spawned=0;
-static float timer=0;
-static int waveSize[]={3,5,10};
-void resetWaves(){wave=0;spawned=0;timer=0;}
-void updateWaves(float dt){
- if(!isGameplayRunning()) return;
- if(wave>=3) return;
- if(spawned==waveSize[wave]) { if(countEnemies()==0){++wave;spawned=0;timer=0;if(wave==3)finishGame(true);} return; }
- timer-=dt; if(timer>0)return;
- int type=ENEMY_EASY;
- if(wave==1 && spawned%2)type=ENEMY_MEDIUM;
- if(wave==2) type=spawned%3==0?ENEMY_HARD:(spawned%2?ENEMY_MEDIUM:ENEMY_EASY);
- int lane=std::rand()%getEnvironment().getLaneCount();
- spawnEnemy(type,lane);++spawned;timer=1.2f;
+
+static constexpr int WAVE_SIZES[] = {3, 5, 10};
+static constexpr int WAVE_COUNT = sizeof(WAVE_SIZES) / sizeof(WAVE_SIZES[0]);
+static constexpr float SPAWN_INTERVAL = 1.2f;
+static constexpr float WAVE_ANNOUNCEMENT_TIME = 2.0f;
+
+static int waveIndex = 0;
+static int enemiesSpawned = 0;
+static double timeUntilSpawn = WAVE_ANNOUNCEMENT_TIME;
+
+void resetWaves()
+{
+    waveIndex = 0;
+    enemiesSpawned = 0;
+    timeUntilSpawn = WAVE_ANNOUNCEMENT_TIME;
 }
-void drawWaveStatus(GLint t,GLint c){(void)t;(void)c;}
+
+void updateWaves(float deltaTime)
+{
+    if (!isGameplayRunning() || waveIndex >= WAVE_COUNT)
+    {
+        return;
+    }
+
+    // The next wave waits until every enemy from this one is gone.
+    if (enemiesSpawned == WAVE_SIZES[waveIndex])
+    {
+        if (countEnemies() == 0)
+        {
+            ++waveIndex;
+            enemiesSpawned = 0;
+            timeUntilSpawn = WAVE_ANNOUNCEMENT_TIME;
+            if (waveIndex == WAVE_COUNT)
+            {
+                finishGame(true);
+            }
+        }
+        return;
+    }
+
+    timeUntilSpawn -= deltaTime;
+    if (timeUntilSpawn > 0.0f)
+    {
+        return;
+    }
+
+    int enemyType = ENEMY_EASY;
+    if (waveIndex == 2 && enemiesSpawned % 3 == 0)
+    {
+        enemyType = ENEMY_HARD;
+    }
+    else if (waveIndex >= 1 && enemiesSpawned % 2 != 0)
+    {
+        enemyType = ENEMY_MEDIUM;
+    }
+
+    const int lane = std::rand() % getEnvironment().getLaneCount();
+    spawnEnemy(enemyType, lane);
+    ++enemiesSpawned;
+    timeUntilSpawn = SPAWN_INTERVAL;
+}
+
+void drawWaveStatus(GLint transformLocation, GLint colorLocation)
+{
+    if (!isGameplayRunning() || waveIndex >= WAVE_COUNT || enemiesSpawned != 0)
+    {
+        return;
+    }
+
+    glUniform3f(colorLocation, 0.85f, 0.72f, 0.45f);
+    drawRectangle(transformLocation, 0.0f, 0.57f, 0.88f, 0.15f);
+    glUniform3f(colorLocation, 0.16f, 0.20f, 0.28f);
+    drawRectangle(transformLocation, 0.0f, 0.57f, 0.85f, 0.12f);
+    glUniform3f(colorLocation, 1.0f, 0.92f, 0.30f);
+    drawCenteredText(transformLocation, "WAVE " + std::to_string(waveIndex + 1) + " STARTING",
+                     0.0f, 0.57f, 0.008f);
+}

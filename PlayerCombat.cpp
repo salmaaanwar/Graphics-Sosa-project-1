@@ -5,28 +5,43 @@
 #include "Renderer.h"
 #include <cmath>
 
+static const float MAX_COMBAT_STEP = 1.0f / 120.0f;
+
 static PlayerEnemyAccess enemies;
 static std::vector<PlayerProjectile> projectiles;
 
-void connectPlayerCombatToEnemies(PlayerEnemyAccess access) { enemies = access; }
-const std::vector<PlayerProjectile>& getPlayerProjectiles() { return projectiles; }
+void connectPlayerCombatToEnemies(PlayerEnemyAccess access)
+{
+    enemies = access;
+}
+const std::vector<PlayerProjectile>& getPlayerProjectiles()
+{
+    return projectiles;
+}
 
 static bool enemiesConnected()
 {
     return enemies.getCount && enemies.getTarget && enemies.damage;
 }
 
-// Horizontal swept collision: a fast droplet cannot skip a narrow enemy between
-// frames. All attacks travel right and only inspect enemies in their own lane.
+// Check the whole path so a fast shot can still hit an enemy between frames.
 static int findEnemyInPath(int lane, float left, float right)
 {
-    if (!enemiesConnected()) return -1;
+    if (!enemiesConnected()) {
+        return -1;
+    }
     int closestId = -1;
     float closestX = right + 1.0f;
     for (int i = 0; i < enemies.getCount(); i++) {
         PlayerAttackTarget target;
-        if (!enemies.getTarget(i, target) || target.lane != lane) continue;
-        if (target.x + target.halfWidth < left || target.x - target.halfWidth > right) continue;
+        if (!enemies.getTarget(i, target) || target.lane != lane) {
+            continue;
+        }
+        float enemyLeft = target.x - target.halfWidth;
+        float enemyRight = target.x + target.halfWidth;
+        if (enemyRight < left || enemyLeft > right) {
+            continue;
+        }
         if (target.x < closestX) {
             closestX = target.x;
             closestId = target.id;
@@ -42,7 +57,9 @@ static void advanceProjectiles(float dt)
         float oldX = shot.x;
         shot.x += SPRAY_PROJECTILE_SPEED * dt;
         float right = shot.x + SPRAY_PROJECTILE_RADIUS;
-        if (right > getEnvironment().getLaneEndX()) right = getEnvironment().getLaneEndX();
+        if (right > getEnvironment().getLaneEndX()) {
+            right = getEnvironment().getLaneEndX();
+        }
         int enemyId = findEnemyInPath(shot.lane, oldX - SPRAY_PROJECTILE_RADIUS, right);
         if (enemyId >= 0) {
             enemies.damage(enemyId, 1);
@@ -55,32 +72,45 @@ static void advanceProjectiles(float dt)
 
 void updatePlayerCombat(float dt)
 {
-    if (!isGameplayRunning() || dt <= 0.0f || !std::isfinite(dt)) return;
+    if (!isGameplayRunning() || dt <= 0.0f || !std::isfinite(dt)) {
+        return;
+    }
 
-    // Short simulation steps keep firing and swept impacts consistent during a
-    // slow frame. Like Lab 4, all movement/timers use elapsed seconds.
+    // Split long frames so attack timers and shots advance together.
     while (dt > 0.0f) {
-        float step = dt > 1.0f / 120.0f ? 1.0f / 120.0f : dt;
+        float step = dt;
+        if (step > MAX_COMBAT_STEP) {
+            step = MAX_COMBAT_STEP;
+        }
         std::vector<Player>& players = getPlayers();
         for (int i = 0; i < (int)players.size(); i++) {
-            Player& p = players[i];
-            p.attackAnimation -= step;
-            if (p.attackAnimation < 0.0f) p.attackAnimation = 0.0f;
-            if (p.type == PLAYER_DEFENSE || p.hp <= 0) continue;
-            p.attackCooldown -= step;
-            if (p.attackCooldown > 0.0f) continue;
+            Player& player = players[i];
+            player.attackAnimation -= step;
+            if (player.attackAnimation < 0.0f) {
+                player.attackAnimation = 0.0f;
+            }
+            if (player.type == PLAYER_DEFENSE || player.hp <= 0) {
+                continue;
+            }
+            player.attackCooldown -= step;
+            if (player.attackCooldown > 0.0f) {
+                continue;
+            }
 
-            p.attackAnimation = PLAYER_ATTACK_ANIMATION_TIME;
-            if (p.type == PLAYER_MELEE) {
-                p.attackCooldown += MELEE_ATTACK_INTERVAL;
-                int enemyId = findEnemyInPath(p.lane, p.x,
-                    p.x + PLAYER_HALF_WIDTH + MELEE_ATTACK_REACH);
-                if (enemyId >= 0) enemies.damage(enemyId, 1);
-            } else if (p.type == PLAYER_RANGED) {
-                p.attackCooldown += SPRAY_ATTACK_INTERVAL;
+            player.attackAnimation = PLAYER_ATTACK_ANIMATION_TIME;
+            if (player.type == PLAYER_MELEE) {
+                player.attackCooldown += MELEE_ATTACK_INTERVAL;
+                float attackEndX = player.x + PLAYER_HALF_WIDTH + MELEE_ATTACK_REACH;
+                int enemyId = findEnemyInPath(player.lane, player.x, attackEndX);
+                if (enemyId >= 0) {
+                    enemies.damage(enemyId, 1);
+                }
+            } else if (player.type == PLAYER_RANGED) {
+                player.attackCooldown += SPRAY_ATTACK_INTERVAL;
                 // Begin just inside the front hitbox so a touching enemy is hit.
-                projectiles.push_back({p.lane, p.x + PLAYER_HALF_WIDTH * 0.8f,
-                                       p.y + 0.048f});
+                float shotX = player.x + PLAYER_HALF_WIDTH * 0.8f;
+                float shotY = player.y + 0.048f;
+                projectiles.push_back({player.lane, shotX, shotY});
             }
         }
         advanceProjectiles(step);
@@ -91,9 +121,13 @@ void updatePlayerCombat(float dt)
 int getPlayerDamageReceiver(int playerIndex, float attackerX)
 {
     const std::vector<Player>& players = getPlayers();
-    if (playerIndex < 0 || playerIndex >= (int)players.size()) return -1;
+    if (playerIndex < 0 || playerIndex >= (int)players.size()) {
+        return -1;
+    }
     const Player& ally = players[playerIndex];
-    if (attackerX < ally.x) return playerIndex;
+    if (attackerX < ally.x) {
+        return playerIndex;
+    }
     int receiver = playerIndex;
     float frontX = ally.x;
     for (int i = 0; i < (int)players.size(); i++) {
@@ -109,25 +143,27 @@ int getPlayerDamageReceiver(int playerIndex, float attackerX)
 
 void damagePlayerFromEnemy(int playerIndex, int damage, float attackerX)
 {
-    if (!isGameplayRunning()) return;
+    if (!isGameplayRunning()) {
+        return;
+    }
     int receiver = getPlayerDamageReceiver(playerIndex, attackerX);
-    if (receiver >= 0) damagePlayer(receiver, damage);
+    if (receiver >= 0) {
+        damagePlayer(receiver, damage);
+    }
 }
 
 void resetPlayerCombat()
 {
     projectiles.clear();
-    std::vector<Player>& players = getPlayers();
-    for (int i = 0; i < (int)players.size(); i++) {
-        players[i].attackCooldown = 0.0f;
-        players[i].attackAnimation = 0.0f;
+    for (Player& player : getPlayers()) {
+        player.attackCooldown = 0.0f;
+        player.attackAnimation = 0.0f;
     }
 }
 
 void drawPlayerCombat(GLint t, GLint c, int firstCircle, int circleCount)
 {
-    for (int i = 0; i < (int)projectiles.size(); i++) {
-        const PlayerProjectile& shot = projectiles[i];
+    for (const PlayerProjectile& shot : projectiles) {
         glUniform3f(c, 0.12f, 0.55f, 0.75f);
         drawRectangle(t, shot.x - 0.018f, shot.y, 0.045f, 0.008f);
         glUniform3f(c, 0.55f, 0.94f, 1.0f);

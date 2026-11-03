@@ -96,6 +96,11 @@ void drawMainMenu(
     float mouseY
 );
 
+void drawCenteredText(GLint transformLocation, const std::string& text,
+                      float centerX, float centerY, float cellSize);
+
+void drawCutsceneSkipButton(GLint transformLocation, GLint colorLocation, float mouseX, float mouseY);
+
 void drawPauseMenu(
     GLint transformLocation,
     GLint colorLocation,
