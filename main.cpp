@@ -15,6 +15,7 @@
 #include "Player.h"
 #include "PlayerCombat.h"
 #include "Enemy.h"
+#include "Collectibles.h"
 
 glm::mat4 projection = glm::mat4(1.0f);
 
@@ -329,6 +330,7 @@ int main()
                 drawEnemies(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayerCombat(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
+                drawCollectibles(transformLocation,colorLocation,circleVertexStart,circleVertexCount);
                 drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
                         mouseWorld.x, mouseWorld.y);
             }
@@ -338,6 +340,7 @@ int main()
                 drawEnemies(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayerCombat(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
+                drawCollectibles(transformLocation,colorLocation,circleVertexStart,circleVertexCount);
                 drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart, -99.0f, -99.0f);
                 drawPauseMenu(transformLocation, colorLocation, mouseWorld.x, mouseWorld.y);
             }
@@ -347,6 +350,7 @@ int main()
                 drawEnemies(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
                 drawPlayerCombat(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
+                drawCollectibles(transformLocation,colorLocation,circleVertexStart,circleVertexCount);
                 drawWinLoseMenu(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
                                 state == STATE_WON, mouseWorld.x, mouseWorld.y);
             }

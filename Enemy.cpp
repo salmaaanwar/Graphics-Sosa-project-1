@@ -5,11 +5,17 @@
 #include "UI.h"
 #include "Player.h"
 #include "PlayerCombat.h"
+#include "Collectibles.h"
 
 // active enemies
 static std::vector<Enemy> enemies;
 static std::vector<EnemyProjectile> enemyProjectiles;
 static int nextEnemyId = 0;
+static void damageEnemyById(int enemyId, int amount);
+static void connectEnemyCombat()
+{
+    connectPlayerCombatToEnemies({countEnemies, readEnemyTarget, damageEnemyById});
+}
 
 // access the original enemy list
 std::vector<Enemy> &getEnemies()
@@ -22,11 +28,13 @@ void resetEnemies()
 {
     enemies.clear();
     enemyProjectiles.clear();
+    nextEnemyId = 0;
 }
 
 // create one enemy
 int spawnEnemy(int type, int lane)
 {
+    connectEnemyCombat();
     Environment &env = getEnvironment();
 
     // reject invalid enemy types or lanes
@@ -68,6 +76,18 @@ int spawnEnemy(int type, int lane)
 
     return enemy.id;
 }
+
+static void damageEnemyById(int enemyId, int amount)
+{
+    for (int i = 0; i < (int)enemies.size(); ++i) {
+        if (enemies[i].id != enemyId) continue;
+        enemies[i].hp -= amount;
+        if (enemies[i].hp <= 0) { dropCollectible(enemies[i].x, enemies[i].y); enemies.erase(enemies.begin() + i); }
+        return;
+    }
+}
+
+void damageEnemy(int enemyId, int amount) { damageEnemyById(enemyId, amount); }
 
 // move bullets and check player hits
 void updateEnemyProjectiles(float dt)
@@ -451,6 +471,9 @@ void drawEnemies(
 {
     for (int i = 0; i < (int)enemies.size(); i++)
     {
+        drawHealthBar(transformLocation, colorLocation, enemies[i].x, enemies[i].y + 0.12f, enemies[i].hp, enemies[i].maxHp);
+        float redness = 1.0f - (float)enemies[i].hp / enemies[i].maxHp;
+        glUniform3f(colorLocation, 0.75f + 0.25f * redness, 0.75f * (1.0f - redness), 0.75f * (1.0f - redness));
         if (enemies[i].type == ENEMY_EASY)
         {
             float recoil = enemies[i].attackAnimation * 0.06f;
@@ -502,6 +525,13 @@ void drawEnemies(
                 enemies[i].x,
                 enemies[i].y,
                 enemies[i].attackAnimation);
+        }
+
+        float damageRed = 1.0f - (float)enemies[i].hp / enemies[i].maxHp;
+        if (damageRed > 0.0f) {
+            glUniform3f(colorLocation, 0.85f, 0.12f, 0.10f);
+            drawCircle(transformLocation, circleVertexStart, circleVertexCount,
+                       enemies[i].x, enemies[i].y, 0.008f + damageRed * 0.015f);
         }
     }
 

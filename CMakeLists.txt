@@ -22,6 +22,8 @@ add_executable(OpenGLStarter
     PlayerCombat.cpp
     Deployment.cpp
     Enemy.cpp
+    WaveManager.cpp
+    Collectibles.cpp
 )
 
 target_include_directories(OpenGLStarter PRIVATE external/glad/include)
@@ -34,7 +36,7 @@ endif()
 option(BUILD_RENDER_SMOKE_TESTS "Build hidden-window graphics and callback checks" OFF)
 if(BUILD_RENDER_SMOKE_TESTS)
     enable_testing()
-   add_executable(RenderSmokeTests tests/RenderSmokeTests.cpp ExampleScene.cpp
+    add_executable(RenderSmokeTests tests/RenderSmokeTests.cpp ExampleScene.cpp WaveManager.cpp Collectibles.cpp
     Game.cpp Enemy.cpp Cutscene.cpp Environment.cpp Player.cpp PlayerCombat.cpp
     Deployment.cpp UI.cpp Renderer.cpp TextRenderer.cpp)
     target_include_directories(RenderSmokeTests PRIVATE . external/glad/include)
@@ -49,7 +51,7 @@ endif()
 option(BUILD_REPOSITORY_TESTS "Build movement, timing and input stress checks" OFF)
 if(BUILD_REPOSITORY_TESTS)
     enable_testing()
-    add_executable(RepositoryTests tests/RepositoryTests.cpp
+    add_executable(RepositoryTests tests/RepositoryTests.cpp WaveManager.cpp Collectibles.cpp
         Game.cpp Enemy.cpp Cutscene.cpp Environment.cpp Player.cpp PlayerCombat.cpp
         Deployment.cpp UI.cpp Renderer.cpp TextRenderer.cpp)
     target_include_directories(RepositoryTests PRIVATE . external/glad/include)
@@ -68,6 +70,8 @@ if(BUILD_PLAYER_ABILITY_TESTS)
     enable_testing()
     add_executable(PlayerAbilitiesTests
         tests/PlayerAbilitiesTests.cpp
+        WaveManager.cpp
+        Collectibles.cpp
         Game.cpp
         Enemy.cpp
         Cutscene.cpp
@@ -93,6 +97,8 @@ if(BUILD_GAME_FLOW_TESTS)
     enable_testing()
     add_executable(GameFlowTests
         tests/GameFlowTests.cpp
+        WaveManager.cpp
+        Collectibles.cpp
         Game.cpp
         Enemy.cpp
         Cutscene.cpp

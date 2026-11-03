@@ -17,6 +17,7 @@ void setGameState(int state);
 
 void startNewGame();
 void restartGame();
+void resetGame();
 void returnToMainMenu();
 void pauseGame();
 void resumeGame();

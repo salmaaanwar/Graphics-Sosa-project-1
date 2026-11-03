@@ -7,6 +7,8 @@
 #include "UI.h"
 #include <cmath>
 #include "Enemy.h"
+#include "WaveManager.h"
+#include "Collectibles.h"
 
 // Only this file stores the state. UI buttons request transitions through functions.
 static int currentGameState = STATE_MAIN_MENU;
@@ -36,34 +38,25 @@ void setGameState(int state)
 
 void startNewGame()
 {
-    environment.reset();
-    resetDeployment();
-    resetPlayers();
-    resetEnemies();
-
-    // temporary enemy test
-    spawnEnemy(ENEMY_EASY, 0);
-    spawnEnemy(ENEMY_MEDIUM, 1);
-    spawnEnemy(ENEMY_HARD, 2);
-
-    resetPlayerCombat();
-    gameplayTime = 0.0f;
+    resetGame();
     setGameState(STATE_CUTSCENE);
 }
 
-void restartGame()
+void resetGame()
 {
     environment.reset();
     resetDeployment();
     resetPlayers();
     resetEnemies();
 
-    // temporary enemy test
-    spawnEnemy(ENEMY_EASY, 0);
-    spawnEnemy(ENEMY_MEDIUM, 1);
-    spawnEnemy(ENEMY_HARD, 2);
-
     resetPlayerCombat();
+    resetWaves(); resetCollectibles();
+    gameplayTime = 0.0f;
+}
+
+void restartGame()
+{
+    resetGame();
     resetCutscene();
     gameplayTime = 0.0f;
     // A retry starts gameplay directly; Start from the main menu plays the intro.
@@ -72,11 +65,7 @@ void restartGame()
 
 void returnToMainMenu()
 {
-    environment.reset();
-    resetDeployment();
-    resetPlayers();
-    resetEnemies();
-    resetPlayerCombat();
+    resetGame();
     resetCutscene();
     gameplayTime = 0.0f;
     setGameState(STATE_MAIN_MENU);
@@ -139,6 +128,8 @@ void updateGame(float deltaTime)
 
             updatePlayers(step);
             updatePlayerCombat(step);
+            updateWaves(step);
+            updateCollectibles();
             deltaTime -= step;
         }
     }
