@@ -15,6 +15,9 @@
 #include <vector>
 #include <filesystem>
 #include <fstream>
+#include <atomic>
+#include <thread>
+#include <chrono>
 
 static void check(bool value, const char* message) {
     if (!value) { std::cerr << "FAILED: " << message << '\n'; std::exit(1); }
@@ -203,8 +206,48 @@ static void testBadAsset() {
     std::filesystem::remove(root/"assets");
     std::filesystem::remove(root);
 }
+static void testConcurrentLifecycle() {
+    // Exercise the same mixer-thread/game-thread overlap as real playback,
+    // rendering to memory so this regression check never uses the speakers.
+    for (int session=0;session<5;++session) {
+        check(initializeAudio({},AudioMode::Offline),"concurrent audio initializes");
+        std::atomic<bool> running{true}, failed{false};
+        std::atomic<unsigned> blocks{0};
+        std::thread mixer([&] {
+            std::vector<float> pcm(960*2);
+            while (running.load()) {
+                if (!renderOfflineAudio(pcm.data(),960)) failed = true;
+                for (float sample : pcm) if (!std::isfinite(sample) || std::fabs(sample)>1) failed = true;
+                ++blocks;
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+        });
+        for (int cycle=0;cycle<100;++cycle) {
+            returnToMainMenu();
+            handleUIMouseClick(nullptr,0,.02f);
+            handleUIMouseClick(nullptr,.80f,.86f);
+            spawnPlayer(PLAYER_RANGED,0);
+            spawnEnemy(ENEMY_EASY,0);
+            updateAudio(.1f); updateGame(.1f);
+            handleUIKeyPress(nullptr,GLFW_KEY_ESCAPE,GLFW_PRESS);
+            handleUIMouseClick(nullptr,0,-.14f); // Restart while paused.
+            handleUIKeyPress(nullptr,GLFW_KEY_ESCAPE,GLFW_PRESS);
+            handleUIMouseClick(nullptr,0,.10f); // Resume.
+            handleUIKeyPress(nullptr,GLFW_KEY_ESCAPE,GLFW_PRESS);
+            handleUIMouseClick(nullptr,0,-.38f); // Return to menu while paused.
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        running = false;
+        mixer.join();
+        check(blocks > 0 && !failed,"concurrent transitions produce valid PCM");
+        check(getGameState()==STATE_MAIN_MENU,"concurrent lifecycle finishes in menu");
+        shutdownAudio();
+    }
+    std::cout << "500 concurrent pause/restart/menu cycles passed without speaker output.\n";
+}
 int main(int argc, char** argv) {
     if (argc == 3 && std::string(argv[1]) == "--validate") return validateAudioAssets(argv[2]) ? 0 : 1;
+    if (argc == 2 && std::string(argv[1]) == "--lifecycle") { testConcurrentLifecycle(); return 0; }
     if (argc == 2) {
         for (int id=0;id<static_cast<int>(SoundId::Count);++id)
             check(std::filesystem::exists(std::filesystem::path(argv[1])/"assets"/"audio"/audioFilename(static_cast<SoundId>(id))),"packaged audio exists beside executable");

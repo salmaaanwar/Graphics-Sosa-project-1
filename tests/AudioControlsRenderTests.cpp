@@ -9,6 +9,8 @@ static bool testMouseToWorld(GLFWwindow*, const glm::mat4&, glm::vec2& world) { 
 #undef mouseToWorld
 #include <fstream>
 #include <cstdlib>
+#include <thread>
+#include <chrono>
 
 static void check(bool value, const char* message) {
     if (!value) { std::cerr << "FAILED: " << message << '\n'; std::exit(1); }
@@ -73,6 +75,29 @@ int main(int argc, char** argv) {
         check(getAudioVolume(AudioBus::Effects)==0 && getGameState()==STATE_PAUSED,"pause effects mute does not activate menu buttons");
         render("paused-muted");
     }
+    // A double click on Main Menu must not become Exit on the next screen.
+    restartGame(); pauseGame();
+    testMouse = glm::vec2(0,-.33f); // Inside both the old Main Menu and new Exit.
+    mouseButtonCallback(window,GLFW_MOUSE_BUTTON_LEFT,GLFW_PRESS,0);
+    mouseButtonCallback(window,GLFW_MOUSE_BUTTON_LEFT,GLFW_RELEASE,0);
+    check(getGameState()==STATE_MAIN_MENU,"Main Menu callback changes screen");
+    mouseButtonCallback(window,GLFW_MOUSE_BUTTON_LEFT,GLFW_PRESS,0);
+    mouseButtonCallback(window,GLFW_MOUSE_BUTTON_LEFT,GLFW_RELEASE,0);
+    check(!glfwWindowShouldClose(window),"Main Menu double-click must not click through to Exit");
+    // The result screen has the same overlap and needs the same protection.
+    restartGame(); finishGame(false);
+    testMouse = glm::vec2(0,-.32f);
+    for (int click=0;click<2;++click) {
+        mouseButtonCallback(window,GLFW_MOUSE_BUTTON_LEFT,GLFW_PRESS,0);
+        mouseButtonCallback(window,GLFW_MOUSE_BUTTON_LEFT,GLFW_RELEASE,0);
+    }
+    check(getGameState()==STATE_MAIN_MENU && !glfwWindowShouldClose(window),"result Main Menu double-click is safe");
+    // A deliberate Exit still works once the double-click interval has passed.
+    std::this_thread::sleep_for(std::chrono::milliseconds(550));
+    testMouse = glm::vec2(0,-.28f);
+    mouseButtonCallback(window,GLFW_MOUSE_BUTTON_LEFT,GLFW_PRESS,0);
+    mouseButtonCallback(window,GLFW_MOUSE_BUTTON_LEFT,GLFW_RELEASE,0);
+    check(glfwWindowShouldClose(window),"intentional Exit remains functional");
     shutdownAudio(); releaseKitchenBackground();
     glDeleteBuffers(1,&vbo); glDeleteVertexArrays(1,&vao); glDeleteShader(vs); glDeleteShader(fs); glDeleteProgram(program);
     glfwDestroyWindow(window); glfwTerminate();

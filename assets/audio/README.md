@@ -53,3 +53,8 @@ keyboard focus, and hidden-window rendering at seven sizes, including portrait
 and 320×240. Its captures are written under the build's `audio-captures` folder.
 `AudioPackagedPlayback` checks the copies beside the executable and renders them
 from a different working directory.
+
+`AudioConcurrentLifecycle` runs 500 pause/restart/menu cycles while a separate
+thread mixes actual PCM into memory, without using the speakers. The controls
+render test also verifies that a rapid double-click on Main Menu cannot activate
+Exit on the next screen; a deliberate Exit works after the 500 ms guard interval.

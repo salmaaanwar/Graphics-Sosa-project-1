@@ -6,6 +6,17 @@
 #include "Renderer.h"
 #include "TextRenderer.h"
 #include <algorithm>
+#include <chrono>
+
+namespace {
+// Main Menu and Exit occupy overlapping positions on successive screens.
+// Consume a trailing double-click after navigating back, rather than quitting.
+std::chrono::steady_clock::time_point exitProtectedUntil{};
+void navigateToMainMenu() {
+    returnToMainMenu();
+    exitProtectedUntil = std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
+}
+}
 
 // Drawing and hit testing share the same positions on a wider counter.
 static float cardCenterX(int index)
@@ -397,8 +408,9 @@ void handleUIMouseClick(
         }
         // exit button
         if (isPointInRect(mouseX, mouseY, 0.0f, -0.28f, 0.68f, 0.20f)) {
+            if (std::chrono::steady_clock::now() < exitProtectedUntil) return;
             playSound(SoundId::Button);
-            glfwSetWindowShouldClose(window, true);
+            if (window) glfwSetWindowShouldClose(window, true);
             return;
         }
     }
@@ -448,7 +460,7 @@ void handleUIMouseClick(
         // main menu
         if (isPointInRect(mouseX, mouseY, 0.0f, -0.38f, btnW, btnH)) {
             playSound(SoundId::Button);
-            returnToMainMenu();
+            navigateToMainMenu();
             return;
         }
     }
@@ -465,7 +477,7 @@ void handleUIMouseClick(
         // main menu
         if (isPointInRect(mouseX, mouseY, 0.0f, -0.32f, btnW, btnH)) {
             playSound(SoundId::Button);
-            returnToMainMenu();
+            navigateToMainMenu();
             return;
         }
     }
