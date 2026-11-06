@@ -16,7 +16,8 @@ static std::vector<CollectibleDrop> drops;
 
 void resizeCollectiblePositions(float scale, float offset)
 {
-    for (CollectibleDrop& drop : drops) drop.x = drop.x * scale + offset;
+    for (CollectibleDrop& drop : drops)
+        drop.x = drop.x * scale + offset;
 }
 
 void dropCollectible(float x, float y, int value)
@@ -37,8 +38,8 @@ void updateCollectibles()
         const CollectibleDrop& drop = drops[index];
         for (const Player& player : getPlayers())
         {
-            const bool withinReach = std::abs(player.x - drop.x) < 0.09f &&
-                                     std::abs(player.y - drop.y) < 0.10f;
+            const bool withinReach =
+                std::abs(player.x - drop.x) < 0.09f && std::abs(player.y - drop.y) < 0.10f;
             if (withinReach)
             {
                 collectEnemyDrop(drop.value);
@@ -49,11 +50,11 @@ void updateCollectibles()
     }
 }
 
-void drawCollectibles(GLint transformLocation, GLint colorLocation,
-                      int circleStart, int circleCount)
+void drawCollectibles(GLint transformLocation, GLint colorLocation)
 {
     for (const CollectibleDrop& drop : drops)
     {
-        drawIntroImage(transformLocation,colorLocation,"icon-coin-0",drop.x,drop.y,.0625f,.0625f);
+        drawIntroImage(transformLocation, colorLocation, "icon-coin-0", drop.x, drop.y, .0625f,
+                       .0625f);
     }
 }

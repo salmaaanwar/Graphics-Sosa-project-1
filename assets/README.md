@@ -1,3 +1,5 @@
+> The artwork exporter has been removed. References below to exporting describe how the supplied PNGs were originally created.
+
 # Layered kitchen scenery
 
 The game draws one plain architectural background, then five separate
@@ -45,18 +47,7 @@ existing kitchen/character palette, with no gradients, texture, lighting or
 painted highlights. The game continues to load separate transparent PNG files;
 the shape models are only in the optional offline exporter.
 
-To regenerate the nine PNGs after changing their offline models:
-
-```sh
-cmake -S . -B build -DBUILD_KITCHEN_ASSET_EXPORTER=ON
-cmake --build build --target KitchenAssetExporter
-./build/KitchenAssetExporter assets
-```
-
-The exporter source is tools/ExportKitchenAssets.cpp and is disabled by default
-for normal builds. The plain architectural background remains the previously
-generated image. Historical generation prompts for the superseded props and
-current base background are kept in [ART_PROMPTS.md](ART_PROMPTS.md).
+The finished PNGs are included in this folder. The offline artwork exporter has been removed. Keep these images with the game. Historical generation prompts are in [ART_PROMPTS.md](ART_PROMPTS.md).
 
 ## Picture-based intro
 
@@ -111,7 +102,4 @@ wave announcement labels and panels. Dropped collectibles reuse the coin PNG.
 strips, lane separator/selection strips and protection underlines. This keeps
 their changing sizes and colors dynamic while using the same image renderer.
 
-The original UI and glyph modeling code is kept only in the offline exporter
-sources tools/FlatUIArtwork.cpp and tools/FlatTextArtwork.cpp. The running game
-links UI.cpp and TextRenderer.cpp, which draw images. Primitives remain in the
-renderer for displaying image quads and in the disabled lab example scene.
+The offline shape-modeling tools and unused circle/triangle drawing functions have been removed. UI.cpp and TextRenderer.cpp display images; rectangle geometry remains to display image quads.

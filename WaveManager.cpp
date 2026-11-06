@@ -12,11 +12,7 @@ static constexpr int WAVE_SIZES[] = {3, 5, 10};
 static constexpr int WAVE_COUNT = sizeof(WAVE_SIZES) / sizeof(WAVE_SIZES[0]);
 
 // Seconds between enemies in waves 1, 2 and 3.
-static constexpr float SPAWN_INTERVALS[] = {
-    3.5f,
-    4.5f,
-    5.5f
-};
+static constexpr float SPAWN_INTERVALS[] = {6.0f, 7.0f, 8.0f};
 
 static constexpr float WAVE_ANNOUNCEMENT_TIME = 2.0f;
 
@@ -57,7 +53,8 @@ void updateWaves(float deltaTime)
         return;
     }
 
-    if (!announcementPlayed) {
+    if (!announcementPlayed)
+    {
         playSound(SoundId::Wave);
         announcementPlayed = true;
     }
@@ -77,10 +74,8 @@ void updateWaves(float deltaTime)
         enemyType = ENEMY_MEDIUM;
     }
 
-    // Use each lane in turn before repeating.
-    const int lane =
-        (enemiesSpawned + waveIndex)
-        % getEnvironment().getLaneCount();
+    // Choose a lane independently for every enemy.
+    int lane = std::rand() % getEnvironment().getLaneCount();
     spawnEnemy(enemyType, lane);
     ++enemiesSpawned;
     timeUntilSpawn = SPAWN_INTERVALS[waveIndex];
@@ -93,5 +88,6 @@ void drawWaveStatus(GLint transformLocation, GLint colorLocation)
         return;
     }
 
-    drawIntroImage(transformLocation,colorLocation,"wave-"+std::to_string(waveIndex+1),0,.57f,.88f,.15f);
+    drawIntroImage(transformLocation, colorLocation, "wave-" + std::to_string(waveIndex + 1), 0,
+                   .57f, .88f, .15f);
 }

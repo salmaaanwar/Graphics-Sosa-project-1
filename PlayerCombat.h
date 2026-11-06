@@ -11,7 +11,8 @@ const float SPRAY_PROJECTILE_RADIUS = 0.012f;
 
 // Read-only view of an enemy owned by Members 3/4. IDs are nonnegative and stable when
 // another enemy is erased. The provider skips dead enemies; it owns all HP.
-struct PlayerAttackTarget {
+struct PlayerAttackTarget
+{
     int id;
     int lane;
     float x;
@@ -20,14 +21,16 @@ struct PlayerAttackTarget {
 
 // Register once when the enemy module is ready. Re-read live targets for every
 // attack, since damage may erase an enemy. No enemy health is copied here.
-struct PlayerEnemyAccess {
+struct PlayerEnemyAccess
+{
     int (*getCount)() = nullptr;
     bool (*getTarget)(int index, PlayerAttackTarget& target) = nullptr;
     void (*damage)(int enemyId, int amount) = nullptr;
 };
 void connectPlayerCombatToEnemies(PlayerEnemyAccess access);
 
-struct PlayerProjectile {
+struct PlayerProjectile
+{
     int lane;
     float x;
     float y;
@@ -36,8 +39,7 @@ const std::vector<PlayerProjectile>& getPlayerProjectiles();
 void updatePlayerCombat(float dt);
 void resetPlayerCombat();
 void resizePlayerProjectiles(float scale, float offset);
-void drawPlayerCombat(GLint transformLocation, GLint colorLocation,
-                      int circleVertexStart, int circleVertexCount);
+void drawPlayerCombat(GLint transformLocation, GLint colorLocation);
 
 // Enemy melee/projectiles resolve this immediately before applying a hit. A
 // same-lane sheet between the ally and the attacker absorbs the entire attack.

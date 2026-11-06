@@ -13,7 +13,8 @@ static std::vector<PlayerProjectile> projectiles;
 
 void resizePlayerProjectiles(float scale, float offset)
 {
-    for (PlayerProjectile& shot : projectiles) shot.x = shot.x * scale + offset;
+    for (PlayerProjectile& shot : projectiles)
+        shot.x = shot.x * scale + offset;
 }
 
 void connectPlayerCombatToEnemies(PlayerEnemyAccess access)
@@ -33,22 +34,27 @@ static bool enemiesConnected()
 // Check the whole path so a fast shot can still hit an enemy between frames.
 static int findEnemyInPath(int lane, float left, float right)
 {
-    if (!enemiesConnected()) {
+    if (!enemiesConnected())
+    {
         return -1;
     }
     int closestId = -1;
     float closestX = right + 1.0f;
-    for (int i = 0; i < enemies.getCount(); i++) {
+    for (int i = 0; i < enemies.getCount(); i++)
+    {
         PlayerAttackTarget target;
-        if (!enemies.getTarget(i, target) || target.lane != lane) {
+        if (!enemies.getTarget(i, target) || target.lane != lane)
+        {
             continue;
         }
         float enemyLeft = target.x - target.halfWidth;
         float enemyRight = target.x + target.halfWidth;
-        if (enemyRight < left || enemyLeft > right) {
+        if (enemyRight < left || enemyLeft > right)
+        {
             continue;
         }
-        if (target.x < closestX) {
+        if (target.x < closestX)
+        {
             closestX = target.x;
             closestId = target.id;
         }
@@ -58,20 +64,25 @@ static int findEnemyInPath(int lane, float left, float right)
 
 static void advanceProjectiles(float dt)
 {
-    for (int i = (int)projectiles.size() - 1; i >= 0; i--) {
+    for (int i = (int)projectiles.size() - 1; i >= 0; i--)
+    {
         PlayerProjectile& shot = projectiles[i];
         float oldX = shot.x;
         shot.x += SPRAY_PROJECTILE_SPEED * dt;
         float right = shot.x + SPRAY_PROJECTILE_RADIUS;
-        if (right > getEnvironment().getLaneEndX()) {
+        if (right > getEnvironment().getLaneEndX())
+        {
             right = getEnvironment().getLaneEndX();
         }
         int enemyId = findEnemyInPath(shot.lane, oldX - SPRAY_PROJECTILE_RADIUS, right);
-        if (enemyId >= 0) {
+        if (enemyId >= 0)
+        {
             playSound(SoundId::SprayHit);
             enemies.damage(enemyId, 1);
             projectiles.erase(projectiles.begin() + i);
-        } else if (shot.x - SPRAY_PROJECTILE_RADIUS > getEnvironment().getLaneEndX()) {
+        }
+        else if (shot.x - SPRAY_PROJECTILE_RADIUS > getEnvironment().getLaneEndX())
+        {
             projectiles.erase(projectiles.begin() + i);
         }
     }
@@ -79,42 +90,53 @@ static void advanceProjectiles(float dt)
 
 void updatePlayerCombat(float dt)
 {
-    if (!isGameplayRunning() || dt <= 0.0f || !std::isfinite(dt)) {
+    if (!isGameplayRunning() || dt <= 0.0f || !std::isfinite(dt))
+    {
         return;
     }
 
     // Split long frames so attack timers and shots advance together.
-    while (dt > 0.0f) {
+    while (dt > 0.0f)
+    {
         float step = dt;
-        if (step > MAX_COMBAT_STEP) {
+        if (step > MAX_COMBAT_STEP)
+        {
             step = MAX_COMBAT_STEP;
         }
         std::vector<Player>& players = getPlayers();
-        for (int i = 0; i < (int)players.size(); i++) {
+        for (int i = 0; i < (int)players.size(); i++)
+        {
             Player& player = players[i];
             player.attackAnimation -= step;
-            if (player.attackAnimation < 0.0f) {
+            if (player.attackAnimation < 0.0f)
+            {
                 player.attackAnimation = 0.0f;
             }
-            if (player.type == PLAYER_DEFENSE || player.hp <= 0) {
+            if (player.type == PLAYER_DEFENSE || player.hp <= 0)
+            {
                 continue;
             }
             player.attackCooldown -= step;
-            if (player.attackCooldown > 0.0f) {
+            if (player.attackCooldown > 0.0f)
+            {
                 continue;
             }
 
             player.attackAnimation = PLAYER_ATTACK_ANIMATION_TIME;
-            if (player.type == PLAYER_MELEE) {
+            if (player.type == PLAYER_MELEE)
+            {
                 playSound(SoundId::SwatterSwing);
                 player.attackCooldown += MELEE_ATTACK_INTERVAL;
                 float attackEndX = player.x + PLAYER_HALF_WIDTH + MELEE_ATTACK_REACH;
                 int enemyId = findEnemyInPath(player.lane, player.x, attackEndX);
-                if (enemyId >= 0) {
+                if (enemyId >= 0)
+                {
                     playSound(SoundId::SwatterHit);
                     enemies.damage(enemyId, 1);
                 }
-            } else if (player.type == PLAYER_RANGED) {
+            }
+            else if (player.type == PLAYER_RANGED)
+            {
                 player.attackCooldown += SPRAY_ATTACK_INTERVAL;
                 // Begin just inside the front hitbox so a touching enemy is hit.
                 float shotX = player.x + PLAYER_HALF_WIDTH * 0.8f;
@@ -131,19 +153,23 @@ void updatePlayerCombat(float dt)
 int getPlayerDamageReceiver(int playerIndex, float attackerX)
 {
     const std::vector<Player>& players = getPlayers();
-    if (playerIndex < 0 || playerIndex >= (int)players.size()) {
+    if (playerIndex < 0 || playerIndex >= (int)players.size())
+    {
         return -1;
     }
     const Player& ally = players[playerIndex];
-    if (attackerX < ally.x) {
+    if (attackerX < ally.x)
+    {
         return playerIndex;
     }
     int receiver = playerIndex;
     float frontX = ally.x;
-    for (int i = 0; i < (int)players.size(); i++) {
+    for (int i = 0; i < (int)players.size(); i++)
+    {
         const Player& sheet = players[i];
         if (sheet.type == PLAYER_DEFENSE && sheet.hp > 0 && sheet.lane == ally.lane &&
-            sheet.x >= frontX && sheet.x <= attackerX) {
+            sheet.x >= frontX && sheet.x <= attackerX)
+        {
             receiver = i;
             frontX = sheet.x;
         }
@@ -153,11 +179,13 @@ int getPlayerDamageReceiver(int playerIndex, float attackerX)
 
 void damagePlayerFromEnemy(int playerIndex, int damage, float attackerX)
 {
-    if (!isGameplayRunning()) {
+    if (!isGameplayRunning())
+    {
         return;
     }
     int receiver = getPlayerDamageReceiver(playerIndex, attackerX);
-    if (receiver >= 0) {
+    if (receiver >= 0)
+    {
         damagePlayer(receiver, damage);
     }
 }
@@ -165,15 +193,17 @@ void damagePlayerFromEnemy(int playerIndex, int damage, float attackerX)
 void resetPlayerCombat()
 {
     projectiles.clear();
-    for (Player& player : getPlayers()) {
+    for (Player& player : getPlayers())
+    {
         player.attackCooldown = 0.0f;
         player.attackAnimation = 0.0f;
     }
 }
 
-void drawPlayerCombat(GLint t, GLint c, int firstCircle, int circleCount)
+void drawPlayerCombat(GLint t, GLint c)
 {
-    for (const PlayerProjectile& shot : projectiles) {
-        drawIntroImage(t,c,"projectile-spray",shot.x,shot.y,.10f,.10f);
+    for (const PlayerProjectile& shot : projectiles)
+    {
+        drawIntroImage(t, c, "projectile-spray", shot.x, shot.y, .10f, .10f);
     }
 }

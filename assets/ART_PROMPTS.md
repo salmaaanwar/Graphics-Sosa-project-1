@@ -1,7 +1,7 @@
 # Historical image generation prompts
 
 The five generated decoration images below were superseded by flat-color PNGs
-exported from tools/ExportKitchenAssets.cpp. These prompts remain as history;
+exported using the former offline artwork tool (now removed). These prompts remain as history;
 they do not describe the current decoration files. The background prompt still
 applies to kitchen-background.png.
 

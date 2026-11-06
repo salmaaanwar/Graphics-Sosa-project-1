@@ -7,30 +7,44 @@
 #include "Game.h"
 #include "Player.h"
 
-
 static int collectibles = STARTING_COLLECTIBLES;
 static int enemyDropsCollected = 0;
 static int selectedCard = -1;
 
-int getCollectibles() { return collectibles; }
-int getSelectedCard() { return selectedCard; }
+int getCollectibles()
+{
+    return collectibles;
+}
+int getSelectedCard()
+{
+    return selectedCard;
+}
 
 int getPlayerCost(int type)
 {
-    if (type == PLAYER_MELEE) return MELEE_COST;
-    if (type == PLAYER_RANGED) return RANGED_COST;
-    if (type == PLAYER_DEFENSE) return DEFENSE_COST;
+    if (type == PLAYER_MELEE)
+        return MELEE_COST;
+    if (type == PLAYER_RANGED)
+        return RANGED_COST;
+    if (type == PLAYER_DEFENSE)
+        return DEFENSE_COST;
     return -1;
 }
 
 int getRemainingUnlockDrops(int type)
 {
     int required = 0;
-    if (type == PLAYER_RANGED) required = 2;
-    if (type == PLAYER_DEFENSE) required = 3;
+    if (type == PLAYER_RANGED)
+        required = 2;
+    if (type == PLAYER_DEFENSE)
+        required = 3;
 
     int remaining = required - enemyDropsCollected;
-    return remaining > 0 ? remaining : 0;
+    if (remaining > 0)
+    {
+        return remaining;
+    }
+    return 0;
 }
 
 bool isCardUnlocked(int type)
@@ -41,8 +55,13 @@ bool isCardUnlocked(int type)
 
 void setCollectibles(int amount)
 {
-    collectibles = amount < 0 ? 0 : amount;
-    if (!isCardUnlocked(selectedCard)) selectedCard = -1;
+    collectibles = amount;
+    if (collectibles < 0)
+    {
+        collectibles = 0;
+    }
+    if (!isCardUnlocked(selectedCard))
+        selectedCard = -1;
 }
 
 void collectEnemyDrop(int value)
@@ -54,15 +73,29 @@ void collectEnemyDrop(int value)
 
 void selectPlayerCard(int type)
 {
-    if (!isGameplayRunning()) return;
-    if (!isCardUnlocked(type)) { playSound(SoundId::InvalidPlacement); return; }
+    if (!isGameplayRunning())
+        return;
+    if (!isCardUnlocked(type))
+    {
+        playSound(SoundId::InvalidPlacement);
+        return;
+    }
 
     const auto lanes = getEnvironment().getSelectedLanes();
-    if (lanes.empty()) { playSound(SoundId::InvalidPlacement); return; }
+    if (lanes.empty())
+    {
+        playSound(SoundId::InvalidPlacement);
+        return;
+    }
     playSound(SoundId::SelectCard);
 
-    for (int lane : lanes) {
-        if (!isCardUnlocked(type)) { playSound(SoundId::InvalidPlacement); break; }
+    for (int lane : lanes)
+    {
+        if (!isCardUnlocked(type))
+        {
+            playSound(SoundId::InvalidPlacement);
+            break;
+        }
 
         // Deploy into a lane; defense uses its remembered click position.
         // Failed placements spend nothing.
@@ -75,35 +108,46 @@ void selectPlayerCard(int type)
 
 bool deploySelectedPlayer(int lane)
 {
-    if (!isGameplayRunning() || !isCardUnlocked(selectedCard)) {
-        if (isGameplayRunning()) playSound(SoundId::InvalidPlacement);
+    if (!isGameplayRunning() || !isCardUnlocked(selectedCard))
+    {
+        if (isGameplayRunning())
+            playSound(SoundId::InvalidPlacement);
         return false;
     }
 
     const Environment& env = getEnvironment();
 
-    if (lane < 0 || lane >= env.getLaneCount()) {
-        if (isGameplayRunning()) playSound(SoundId::InvalidPlacement);
+    if (lane < 0 || lane >= env.getLaneCount())
+    {
+        if (isGameplayRunning())
+            playSound(SoundId::InvalidPlacement);
         return false;
     }
 
     float x = env.getPlacementX(lane);
-    if (!std::isfinite(x)) { playSound(SoundId::InvalidPlacement); return false; }
+    if (!std::isfinite(x))
+    {
+        playSound(SoundId::InvalidPlacement);
+        return false;
+    }
 
     // Keep the defense hitbox inside the lane.
     float left = env.getLaneStartX() + PLAYER_HALF_WIDTH;
     float right = env.getLaneEndX() - PLAYER_HALF_WIDTH;
 
-    if (x < left) x = left;
-    if (x > right) x = right;
+    if (x < left)
+        x = left;
+    if (x > right)
+        x = right;
 
     // Multiple defenses may share a lane if they do not overlap.
-    if (selectedCard == PLAYER_DEFENSE) {
-        for (const Player& player : getPlayers()) {
-            if (player.lane == lane &&
-                player.type == PLAYER_DEFENSE &&
-                player.hp > 0 &&
-                std::fabs(player.x - x) < 2.0f * PLAYER_HALF_WIDTH) {
+    if (selectedCard == PLAYER_DEFENSE)
+    {
+        for (const Player& player : getPlayers())
+        {
+            if (player.lane == lane && player.type == PLAYER_DEFENSE && player.hp > 0 &&
+                std::fabs(player.x - x) < 2.0f * PLAYER_HALF_WIDTH)
+            {
                 playSound(SoundId::InvalidPlacement);
                 return false;
             }
@@ -114,9 +158,14 @@ bool deploySelectedPlayer(int lane)
     int cost = getPlayerCost(type);
 
     int index = spawnPlayer(type, lane);
-    if (index < 0) { playSound(SoundId::InvalidPlacement); return false; }
+    if (index < 0)
+    {
+        playSound(SoundId::InvalidPlacement);
+        return false;
+    }
 
-    if (type == PLAYER_DEFENSE) {
+    if (type == PLAYER_DEFENSE)
+    {
         getPlayers()[index].x = x;
     }
 

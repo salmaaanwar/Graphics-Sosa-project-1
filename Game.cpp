@@ -18,7 +18,7 @@ static int currentGameState = STATE_MAIN_MENU;
 static float gameplayTime = 0.0f;
 static Environment environment;
 
-Environment &getEnvironment()
+Environment& getEnvironment()
 {
     return environment;
 }
@@ -92,7 +92,14 @@ void finishGame(bool playerWon)
 {
     if (currentGameState != STATE_PLAYING)
         return;
-    setGameState(playerWon ? STATE_WON : STATE_LOST);
+    if (playerWon)
+    {
+        setGameState(STATE_WON);
+    }
+    else
+    {
+        setGameState(STATE_LOST);
+    }
 }
 
 bool isGameplayRunning()
@@ -123,7 +130,11 @@ void updateGame(float deltaTime)
         // frame fires every shot from the player's final position for that frame.
         while (deltaTime > 0.0f)
         {
-            const float step = std::min(deltaTime, MAX_SIMULATION_STEP);
+            float step = deltaTime;
+            if (step > MAX_SIMULATION_STEP)
+            {
+                step = MAX_SIMULATION_STEP;
+            }
             environment.update(step);
             updateEnemies(step);
 

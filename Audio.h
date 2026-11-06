@@ -3,16 +3,49 @@
 #include <cstddef>
 #include <string>
 
-enum class SoundId {
-    MenuMusic, IntroMusic, GameplayMusic, VictoryMusic, DefeatMusic,
-    Button, SelectCard, InvalidPlacement, PlaceUnit, SwatterSwing, SwatterHit,
-    SprayFire, SprayHit, UnitDamage, SheetHit, UnitDefeated, InsectDefeated,
-    Jump, Duck, Pickup, Wave, Approaching, FoodReached, Pause, Resume, Count
+enum class SoundId
+{
+    MenuMusic,
+    IntroMusic,
+    GameplayMusic,
+    VictoryMusic,
+    DefeatMusic,
+    Button,
+    SelectCard,
+    InvalidPlacement,
+    PlaceUnit,
+    SwatterSwing,
+    SwatterHit,
+    SprayFire,
+    SprayHit,
+    UnitDamage,
+    SheetHit,
+    UnitDefeated,
+    InsectDefeated,
+    Jump,
+    Duck,
+    Pickup,
+    Wave,
+    Approaching,
+    FoodReached,
+    Pause,
+    Resume,
+    Count
 };
-enum class AudioBus { Music, Effects };
+enum class AudioBus
+{
+    Music,
+    Effects
+};
 // Recording mode requires neither a device nor files; used by event tests.
-enum class AudioMode { Playback, Recording, Offline };
-bool initializeAudio(const std::string& executableDirectory = {}, AudioMode mode = AudioMode::Playback);
+enum class AudioMode
+{
+    Playback,
+    Recording,
+    Offline
+};
+bool initializeAudio(const std::string& executableDirectory = {},
+                     AudioMode mode = AudioMode::Playback);
 void shutdownAudio();
 void updateAudio(float seconds);
 void playSound(SoundId sound);
@@ -24,7 +57,8 @@ void toggleAudioMute(AudioBus bus);
 const char* audioFilename(SoundId sound);
 // Validate full MP3 decoding, including music, without opening an audio device.
 bool validateAudioAssets(const std::string& directory);
-struct AudioDiagnostics {
+struct AudioDiagnostics
+{
     std::array<unsigned, static_cast<std::size_t>(SoundId::Count)> played{};
     SoundId music = SoundId::Count;
     bool paused = false;

@@ -5,16 +5,22 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-class Environment {
-public:
+class Environment
+{
+  public:
     static const int LANE_COUNT = 4;
 
     void update(float dt);
     void setViewSize(float halfWidth, float halfHeight);
-    float getViewHalfWidth() const { return viewHalfWidth; }
-    float getViewHalfHeight() const { return viewHalfHeight; }
-    void render(GLint transformLocation, GLint colorLocation,
-                int circleVertexStart, int circleVertexCount, int triangleVertexStart);
+    float getViewHalfWidth() const
+    {
+        return viewHalfWidth;
+    }
+    float getViewHalfHeight() const
+    {
+        return viewHalfHeight;
+    }
+    void render(GLint transformLocation, GLint colorLocation);
     void handleMouseMove(float mouseX, float mouseY);
     void handleMouseButton(int button, int action, float mouseX, float mouseY);
 
@@ -32,14 +38,14 @@ public:
     void clearSelection();
     void reset();
 
-private:
+  private:
     float viewHalfWidth = 1.0f;
     float viewHalfHeight = 1.0f;
     float mouseX = -99.0f;
     float mouseY = -99.0f;
     bool leftButtonDown = false;
     float elapsed = 0.0f;
-    bool selected[LANE_COUNT] = { false, false, false, false };
+    bool selected[LANE_COUNT] = {false, false, false, false};
     float placementX[LANE_COUNT] = {};
     bool hasPlacement[LANE_COUNT] = {};
 };

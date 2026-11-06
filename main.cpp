@@ -8,8 +8,9 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
 #include <cmath>
+#include <cstdlib>
+#include <ctime>
 #include "Renderer.h"
-#include "ExampleScene.h"
 #include "UI.h"
 #include "Game.h"
 #include "Cutscene.h"
@@ -23,7 +24,7 @@
 glm::mat4 projection = glm::mat4(1.0f);
 
 // vertex shader
-const char *vertexShaderSrc = R"(
+const char* vertexShaderSrc = R"(
 #version 330 core
 layout (location = 0) in vec3 aPos;
 uniform mat4 u_Transform;
@@ -36,7 +37,7 @@ void main() {
 )";
 
 // fragment shader
-const char *fragmentShaderSrc = R"(
+const char* fragmentShaderSrc = R"(
 #version 330 core
 out vec4 FragColor;
 in vec2 textureCoordinates;
@@ -57,7 +58,7 @@ void main() {
 )";
 
 // shader compilation
-GLuint compileShader(GLenum type, const char *src)
+GLuint compileShader(GLenum type, const char* src)
 {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &src, nullptr);
@@ -69,8 +70,7 @@ GLuint compileShader(GLenum type, const char *src)
     {
         char log[512];
         glGetShaderInfoLog(shader, 512, nullptr, log);
-        std::cerr << "Shader compile error:\n"
-                  << log << "\n";
+        std::cerr << "Shader compile error:\n" << log << "\n";
 
         glDeleteShader(shader);
         return 0;
@@ -80,10 +80,7 @@ GLuint compileShader(GLenum type, const char *src)
 }
 
 // window resizing and projection
-void framebufferSizeCallback(
-    GLFWwindow *,
-    int width,
-    int height)
+void framebufferSizeCallback(GLFWwindow*, int width, int height)
 {
     if (width <= 0 || height <= 0)
     {
@@ -96,27 +93,21 @@ void framebufferSizeCallback(
 
     if (aspect >= 1.0f)
     {
-        projection = glm::ortho(
-            -aspect, aspect,
-            -1.0f, 1.0f);
+        projection = glm::ortho(-aspect, aspect, -1.0f, 1.0f);
     }
     else
     {
-        projection = glm::ortho(
-            -1.0f, 1.0f,
-            -1.0f / aspect,
-            1.0f / aspect);
+        projection = glm::ortho(-1.0f, 1.0f, -1.0f / aspect, 1.0f / aspect);
     }
-    getEnvironment().setViewSize(1.0f / projection[0][0],
-                                  1.0f / projection[1][1]);
+    getEnvironment().setViewSize(1.0f / projection[0][0], 1.0f / projection[1][1]);
 }
 
-void keyCallback(GLFWwindow *window, int key, int, int action, int)
+void keyCallback(GLFWwindow* window, int key, int, int action, int)
 {
     handleUIKeyPress(window, key, action);
 }
 
-void mouseButtonCallback(GLFWwindow *window, int button, int action, int)
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int)
 {
     if (button != GLFW_MOUSE_BUTTON_LEFT)
     {
@@ -129,7 +120,8 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int)
         return;
     }
 
-    if (handleAudioControlsMouse(mouseWorld.x, mouseWorld.y, action)) return;
+    if (handleAudioControlsMouse(mouseWorld.x, mouseWorld.y, action))
+        return;
     getEnvironment().handleMouseButton(button, action, mouseWorld.x, mouseWorld.y);
 
     // The area below the HUD is handled by the battlefield during play.
@@ -142,6 +134,7 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int)
 
 int main(int argc, char** argv)
 {
+    std::srand((unsigned int)std::time(nullptr));
 
     // window and opengl initialization
     if (!glfwInit())
@@ -154,9 +147,13 @@ int main(int argc, char** argv)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode *mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
-    GLFWwindow *window = nullptr;
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = nullptr;
+    if (monitor != nullptr)
+    {
+        mode = glfwGetVideoMode(monitor);
+    }
+    GLFWwindow* window = nullptr;
     if (mode)
     {
         glfwWindowHint(GLFW_RED_BITS, mode->redBits);
@@ -191,10 +188,7 @@ int main(int argc, char** argv)
     int framebufferWidth;
     int framebufferHeight;
 
-    glfwGetFramebufferSize(
-        window,
-        &framebufferWidth,
-        &framebufferHeight);
+    glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
 
     framebufferSizeCallback(window, framebufferWidth, framebufferHeight);
 
@@ -234,8 +228,7 @@ int main(int argc, char** argv)
     {
         char log[512];
         glGetProgramInfoLog(shaderProgram, 512, nullptr, log);
-        std::cerr << "Shader link error:\n"
-                  << log << "\n";
+        std::cerr << "Shader link error:\n" << log << "\n";
 
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
@@ -250,33 +243,8 @@ int main(int argc, char** argv)
     glDeleteShader(fragmentShader);
 
     // rectangle vertices
-    std::vector<float> vertices{
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.5f, 0.5f, 0.0f,
-        -0.5f, -0.5f, 0.0f,
-        0.5f, 0.5f, 0.0f,
-        -0.5f, 0.5f, 0.0f};
-
-    // circle vertices
-    const int circleVertexStart = 6;
-    const int segments = 50;
-
-    vertices.insert(vertices.end(), {0.0f, 0.0f, 0.0f});
-
-    for (int i = 0; i <= segments; i++)
-    {
-        float angle = 2.0f * 3.14159265 * (float)i / (float)segments;
-
-        vertices.insert(vertices.end(), {cosf(angle), sinf(angle), 0.0f});
-    }
-
-    const int circleVertexCount = segments + 2;
-
-    // triangle vertices
-    const int triangleVertexStart = static_cast<int>(vertices.size() / 3);
-
-    vertices.insert(vertices.end(), {-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f});
+    std::vector<float> vertices{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.5f,  0.5f, 0.0f,
+                                -0.5f, -0.5f, 0.0f, 0.5f, 0.5f,  0.0f, -0.5f, 0.5f, 0.0f};
 
     // VAO and VBO setup
     GLuint VAO, VBO;
@@ -287,13 +255,9 @@ int main(int argc, char** argv)
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        vertices.size() * sizeof(float),
-        vertices.data(),
-        GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -314,13 +278,18 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    const bool showExamples = false;
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    initializeAudio(argc > 0 ? std::filesystem::absolute(argv[0]).parent_path().string() : "");
+    std::string executableFolder;
+    if (argc > 0)
+    {
+        std::filesystem::path executablePath = std::filesystem::absolute(argv[0]);
+        executableFolder = executablePath.parent_path().string();
+    }
+    initializeAudio(executableFolder);
     audioGameStateChanged(-1, getGameState());
     double lastFrame = glfwGetTime();
-    Environment &environment = getEnvironment();
+    Environment& environment = getEnvironment();
 
     // Render loop
     while (!glfwWindowShouldClose(window))
@@ -331,8 +300,7 @@ int main(int argc, char** argv)
         lastFrame = currentFrame;
 
         updateAudio(deltaTime);
-        if (!showExamples)
-            updateGame(deltaTime);
+        updateGame(deltaTime);
 
         glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -350,71 +318,44 @@ int main(int argc, char** argv)
         mouseToWorld(window, projection, mouseWorld);
         environment.handleMouseMove(mouseWorld.x, mouseWorld.y);
         updateAudioControlsMouse(mouseWorld.x, mouseWorld.y,
-            glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
-
-        if (showExamples)
-        {
-            drawExampleScene(
-                transformLocation,
-                colorLocation,
-                circleVertexStart,
-                circleVertexCount,
-                triangleVertexStart);
-
-            if (mouseToWorld(window, projection, mouseWorld))
-            {
-                glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
-
-                drawCircle(
-                    transformLocation,
-                    circleVertexStart,
-                    circleVertexCount,
-                    mouseWorld.x,
-                    mouseWorld.y,
-                    0.025f);
-            }
-        }
-        else
+                                 glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
         {
             const int state = getGameState();
             if (state == STATE_CUTSCENE)
             {
-                drawCutscene(transformLocation, colorLocation, circleVertexStart,
-                             circleVertexCount, triangleVertexStart);
-                drawCutsceneSkipButton(transformLocation, colorLocation, mouseWorld.x, mouseWorld.y);
+                drawCutscene(transformLocation, colorLocation);
+                drawCutsceneSkipButton(transformLocation, colorLocation, mouseWorld.x,
+                                       mouseWorld.y);
             }
-            else if (state == STATE_PLAYING || state == STATE_PAUSED ||
-                     state == STATE_WON || state == STATE_LOST)
+            else if (state == STATE_PLAYING || state == STATE_PAUSED || state == STATE_WON ||
+                     state == STATE_LOST)
             {
-                environment.render(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
-                drawEnemies(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
-                drawPlayers(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
-                drawPlayerCombat(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
-                drawCollectibles(transformLocation, colorLocation, circleVertexStart, circleVertexCount);
+                environment.render(transformLocation, colorLocation);
+                drawEnemies(transformLocation, colorLocation);
+                drawPlayers(transformLocation, colorLocation);
+                drawPlayerCombat(transformLocation, colorLocation);
+                drawCollectibles(transformLocation, colorLocation);
 
                 if (state == STATE_PLAYING)
                 {
-                    drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount,
-                            triangleVertexStart, mouseWorld.x, mouseWorld.y);
+                    drawHUD(transformLocation, colorLocation, mouseWorld.x, mouseWorld.y);
                     drawWaveStatus(transformLocation, colorLocation);
                 }
                 else if (state == STATE_PAUSED)
                 {
                     // Clear the HUD hover while the pause menu is open.
-                    drawHUD(transformLocation, colorLocation, circleVertexStart, circleVertexCount,
-                            triangleVertexStart, -99.0f, -99.0f);
+                    drawHUD(transformLocation, colorLocation, -99.0f, -99.0f);
                     drawPauseMenu(transformLocation, colorLocation, mouseWorld.x, mouseWorld.y);
                 }
                 else
                 {
-                    drawWinLoseMenu(transformLocation, colorLocation, circleVertexStart, circleVertexCount,
-                                    triangleVertexStart, state == STATE_WON, mouseWorld.x, mouseWorld.y);
+                    drawWinLoseMenu(transformLocation, colorLocation, state == STATE_WON,
+                                    mouseWorld.x, mouseWorld.y);
                 }
             }
             else
             {
-                drawUI(transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart,
-                       mouseWorld.x, mouseWorld.y);
+                drawUI(transformLocation, colorLocation, mouseWorld.x, mouseWorld.y);
             }
         }
 

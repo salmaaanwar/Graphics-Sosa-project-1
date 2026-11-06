@@ -8,10 +8,4 @@ void updateCutscene(float deltaTime);
 float getCutsceneTime();
 bool isCutsceneFinished();
 
-void drawCutscene(
-    GLint transformLocation,
-    GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
-    int triangleVertexStart
-);
+void drawCutscene(GLint transformLocation, GLint colorLocation);

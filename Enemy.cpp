@@ -14,26 +14,25 @@ static std::vector<EnemyProjectile> enemyProjectiles;
 
 void resizeEnemyPositions(float scale, float offset)
 {
-    for (Enemy& enemy : enemies) enemy.x = enemy.x * scale + offset;
-    for (EnemyProjectile& shot : enemyProjectiles) shot.x = shot.x * scale + offset;
+    for (Enemy& enemy : enemies)
+        enemy.x = enemy.x * scale + offset;
+    for (EnemyProjectile& shot : enemyProjectiles)
+        shot.x = shot.x * scale + offset;
 }
 static int nextEnemyId = 0;
-static constexpr float SHOT_RECOVERY_TIME = 0.9f;
-static float shotRecovery = SHOT_RECOVERY_TIME;
 static void damageEnemyById(int enemyId, int amount);
 static void connectEnemyCombat()
 {
     connectPlayerCombatToEnemies({countEnemies, readEnemyTarget, damageEnemyById});
 }
 
-std::vector<Enemy> &getEnemies()
+std::vector<Enemy>& getEnemies()
 {
     return enemies;
 }
 
 void resetEnemies()
 {
-    shotRecovery = SHOT_RECOVERY_TIME;
     enemies.clear();
     enemyProjectiles.clear();
     nextEnemyId = 0;
@@ -42,7 +41,7 @@ void resetEnemies()
 int spawnEnemy(int type, int lane)
 {
     connectEnemyCombat();
-    Environment &env = getEnvironment();
+    Environment& env = getEnvironment();
 
     if (type < ENEMY_EASY || type > ENEMY_HARD)
     {
@@ -97,9 +96,12 @@ static void damageEnemyById(int enemyId, int amount)
         if (enemy->hp <= 0)
         {
             int coinValue = 10;
-            if (enemy->type == ENEMY_MEDIUM) {
+            if (enemy->type == ENEMY_MEDIUM)
+            {
                 coinValue = 15;
-            } else if (enemy->type == ENEMY_HARD) {
+            }
+            else if (enemy->type == ENEMY_HARD)
+            {
                 coinValue = 20;
             }
             playSound(SoundId::InsectDefeated);
@@ -187,12 +189,6 @@ void updateEnemies(float dt)
 
     updateEnemyProjectiles(dt);
 
-    if (!enemyProjectiles.empty()) {
-        shotRecovery = SHOT_RECOVERY_TIME;
-    } else if (shotRecovery > 0.0f) {
-        shotRecovery -= dt;
-    }
-
     clearAllPlayerBlocks();
 
     const auto& players = getPlayers();
@@ -249,12 +245,12 @@ void updateEnemies(float dt)
         }
 
         // automatic ranged attacks
-        if (enemy.type == ENEMY_EASY ||
-            enemy.type == ENEMY_MEDIUM)
+        if (enemy.type == ENEMY_EASY || enemy.type == ENEMY_MEDIUM)
         {
             enemy.attackCooldown -= dt;
 
-            if (enemy.attackCooldown <= 0.0f && enemyProjectiles.empty() && shotRecovery <= 0.0f)
+            // Each ranged enemy fires on its own timer, even while other shots are active.
+            if (enemy.attackCooldown <= 0.0f)
             {
                 EnemyProjectile bullet;
 
@@ -272,7 +268,6 @@ void updateEnemies(float dt)
                 }
 
                 enemyProjectiles.push_back(bullet);
-                shotRecovery = SHOT_RECOVERY_TIME;
 
                 enemy.attackAnimation = 0.20f;
                 enemy.attackCooldown = 2.0f;
@@ -292,11 +287,9 @@ void updateEnemies(float dt)
                     if (players[j].lane == enemy.lane)
                     {
                         float distance = enemy.x - players[j].x;
-                        float attackDistance =
-                            ENEMY_HALF_WIDTH + PLAYER_HALF_WIDTH;
+                        float attackDistance = ENEMY_HALF_WIDTH + PLAYER_HALF_WIDTH;
 
-                        if (distance >= 0.0f &&
-                            distance <= attackDistance)
+                        if (distance >= 0.0f && distance <= attackDistance)
                         {
                             if (target == -1 || players[j].x > players[target].x)
                             {
@@ -317,28 +310,25 @@ void updateEnemies(float dt)
     }
 }
 
-void drawEnemies(
-    GLint transformLocation,
-    GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
-    int triangleVertexStart)
+void drawEnemies(GLint transformLocation, GLint colorLocation)
 {
     for (const Enemy& enemy : enemies)
     {
-        drawHealthBar(transformLocation, colorLocation, enemy.x, enemy.y + 0.12f, enemy.hp, enemy.maxHp);
+        drawHealthBar(transformLocation, colorLocation, enemy.x, enemy.y + 0.12f, enemy.hp,
+                      enemy.maxHp);
         float redness = 1.0f - (float)enemy.hp / enemy.maxHp;
-        int frame=enemy.attackAnimation>0 ? 1+std::min(3,int(enemy.attackAnimation/.20f*4)) : 0;
-        drawCharacterImage(transformLocation,colorLocation,
-            "enemy-"+std::to_string(enemy.type)+"-"+std::to_string(frame),enemy.x,enemy.y,redness);
-
+        int frame =
+            enemy.attackAnimation > 0 ? 1 + std::min(3, int(enemy.attackAnimation / .20f * 4)) : 0;
+        drawCharacterImage(transformLocation, colorLocation,
+                           "enemy-" + std::to_string(enemy.type) + "-" + std::to_string(frame),
+                           enemy.x, enemy.y, redness);
     }
 
     for (const EnemyProjectile& projectile : enemyProjectiles)
     {
-        drawIntroImage(transformLocation,colorLocation,
-                       "projectile-enemy-"+std::to_string(projectile.type==ENEMY_EASY ? 0 : 1),
-                       projectile.x,projectile.y,.10f,.10f);
+        drawIntroImage(transformLocation, colorLocation,
+                       "projectile-enemy-" + std::to_string(projectile.type == ENEMY_EASY ? 0 : 1),
+                       projectile.x, projectile.y, .10f, .10f);
     }
 }
 
@@ -348,7 +338,7 @@ int countEnemies()
 }
 
 // provide one enemy's current position for player attacks
-bool readEnemyTarget(int index, PlayerAttackTarget &target)
+bool readEnemyTarget(int index, PlayerAttackTarget& target)
 {
     if (index < 0 || index >= (int)enemies.size())
     {
