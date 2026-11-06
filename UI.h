@@ -6,6 +6,11 @@
 #include "Game.h"
 #include "Deployment.h"
 
+void drawAudioControls(GLint transformLocation, GLint colorLocation);
+bool handleAudioControlsMouse(float x, float y, int action);
+void updateAudioControlsMouse(float x, float y, bool leftDown);
+bool handleAudioControlsKey(int key, int action);
+
 // composite icon drawing functions
 void drawCollectibleIcon(
     GLint transformLocation,

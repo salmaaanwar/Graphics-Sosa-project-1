@@ -1,3 +1,4 @@
+#include "Audio.h"
 #include "Game.h"
 #include <algorithm>
 #include "Cutscene.h"
@@ -35,7 +36,9 @@ void setGameState(int state)
     // Entering the intro always starts its animation from the beginning.
     if (state == STATE_CUTSCENE)
         resetCutscene();
+    const int previous = currentGameState;
     currentGameState = state;
+    audioGameStateChanged(previous, state);
 }
 
 void startNewGame()
@@ -46,6 +49,7 @@ void startNewGame()
 
 void resetGame()
 {
+    clearGameplayAudio();
     environment.reset();
     resetDeployment();
     resetPlayers();
@@ -60,8 +64,9 @@ void restartGame()
 {
     resetGame();
     resetCutscene();
-    // A retry starts gameplay directly; Start from the main menu plays the intro.
-    setGameState(STATE_PLAYING);
+    // A retry always starts the music over, including retries from pause.
+    currentGameState = STATE_PLAYING;
+    audioGameStateChanged(-1, STATE_PLAYING);
 }
 
 void returnToMainMenu()

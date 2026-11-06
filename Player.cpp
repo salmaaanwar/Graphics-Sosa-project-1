@@ -1,3 +1,4 @@
+#include "Audio.h"
 #include "Player.h"
 #include "PlayerCombat.h"
 #include "Environment.h"
@@ -84,10 +85,12 @@ void damagePlayer(int index, int damage)
         return;
     }
 
+    playSound(players[index].type == PLAYER_DEFENSE ? SoundId::SheetHit : SoundId::UnitDamage);
     players[index].hp -= damage;
 
     // remove player from scene when defeated
     if (players[index].hp <= 0) {
+        playSound(SoundId::UnitDefeated);
         players.erase(players.begin() + index);
     }
 }
@@ -166,6 +169,7 @@ void handlePlayerKeyPress(int key, int action)
         return;
     }
 
+    bool changed = false;
     Environment& env = getEnvironment();
     for (Player& player : players) {
         // defense players are stationary and ignore jump and duck
@@ -175,10 +179,12 @@ void handlePlayerKeyPress(int key, int action)
 
         // apply jump or duck to every eligible player in all selected lanes
         if (env.isLaneSelected(player.lane)) {
+            changed = changed || player.pose != newPose;
             player.pose = newPose;
             player.poseTimer = JUMP_DUCK_DURATION;
         }
     }
+    if (changed) playSound(newPose == POSE_JUMPING ? SoundId::Jump : SoundId::Duck);
 }
 
 void drawPlayers(

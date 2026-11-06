@@ -1,6 +1,8 @@
+#include "Audio.h"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -127,6 +129,7 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int)
         return;
     }
 
+    if (handleAudioControlsMouse(mouseWorld.x, mouseWorld.y, action)) return;
     getEnvironment().handleMouseButton(button, action, mouseWorld.x, mouseWorld.y);
 
     // The area below the HUD is handled by the battlefield during play.
@@ -137,7 +140,7 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int)
     }
 }
 
-int main()
+int main(int argc, char** argv)
 {
 
     // window and opengl initialization
@@ -314,6 +317,8 @@ int main()
     const bool showExamples = false;
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    initializeAudio(argc > 0 ? std::filesystem::absolute(argv[0]).parent_path().string() : "");
+    audioGameStateChanged(-1, getGameState());
     double lastFrame = glfwGetTime();
     Environment &environment = getEnvironment();
 
@@ -325,6 +330,7 @@ int main()
         float deltaTime = static_cast<float>(currentFrame - lastFrame);
         lastFrame = currentFrame;
 
+        updateAudio(deltaTime);
         if (!showExamples)
             updateGame(deltaTime);
 
@@ -343,6 +349,8 @@ int main()
         glm::vec2 mouseWorld(-99.0f, -99.0f);
         mouseToWorld(window, projection, mouseWorld);
         environment.handleMouseMove(mouseWorld.x, mouseWorld.y);
+        updateAudioControlsMouse(mouseWorld.x, mouseWorld.y,
+            glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
 
         if (showExamples)
         {
@@ -414,6 +422,7 @@ int main()
     }
 
     // cleanup
+    shutdownAudio();
     releaseKitchenBackground();
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);

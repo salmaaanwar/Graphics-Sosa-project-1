@@ -1,3 +1,4 @@
+#include "Audio.h"
 #include "UI.h"
 #include "Cutscene.h"
 #include "Environment.h"
@@ -303,6 +304,7 @@ void drawMainMenu(
     float mouseY
 ) {
     drawIntroImage(transformLocation,colorLocation,"menu-main",0,0,2,2);
+    drawAudioControls(transformLocation, colorLocation);
     // start and exit buttons
     float btnW = 0.68f, btnH = 0.20f;
     bool startHovered = isPointInRect(mouseX, mouseY, 0.0f, 0.02f, btnW, btnH);
@@ -328,6 +330,7 @@ void drawPauseMenu(
     float mouseY
 ) {
     drawIntroImage(transformLocation,colorLocation,"menu-pause",0,0,2,2);
+    drawAudioControls(transformLocation, colorLocation);
     float btnW = 0.78f;
     float btnH = 0.17f;
 
@@ -384,14 +387,17 @@ void handleUIMouseClick(
     float mouseX,
     float mouseY
 ) {
+    if (handleAudioControlsMouse(mouseX, mouseY, GLFW_PRESS)) return;
     if (getGameState() == STATE_MAIN_MENU) {
         // start button
         if (isPointInRect(mouseX, mouseY, 0.0f, 0.02f, 0.68f, 0.20f)) {
+            playSound(SoundId::Button);
             startNewGame();
             return;
         }
         // exit button
         if (isPointInRect(mouseX, mouseY, 0.0f, -0.28f, 0.68f, 0.20f)) {
+            playSound(SoundId::Button);
             glfwSetWindowShouldClose(window, true);
             return;
         }
@@ -399,6 +405,7 @@ void handleUIMouseClick(
     else if (getGameState() == STATE_CUTSCENE) {
         if (isPointInRect(mouseX, mouseY, SKIP_BUTTON_X, SKIP_BUTTON_Y,
                           SKIP_BUTTON_WIDTH, SKIP_BUTTON_HEIGHT)) {
+            playSound(SoundId::Button);
             updateCutscene(CUTSCENE_DURATION);
             setGameState(STATE_PLAYING);
         }
@@ -434,11 +441,13 @@ void handleUIMouseClick(
         }
         // restart
         if (isPointInRect(mouseX, mouseY, 0.0f, -0.14f, btnW, btnH)) {
+            playSound(SoundId::Button);
             restartGame();
             return;
         }
         // main menu
         if (isPointInRect(mouseX, mouseY, 0.0f, -0.38f, btnW, btnH)) {
+            playSound(SoundId::Button);
             returnToMainMenu();
             return;
         }
@@ -449,11 +458,13 @@ void handleUIMouseClick(
 
         // restart
         if (isPointInRect(mouseX, mouseY, 0.0f, -0.04f, btnW, btnH)) {
+            playSound(SoundId::Button);
             restartGame();
             return;
         }
         // main menu
         if (isPointInRect(mouseX, mouseY, 0.0f, -0.32f, btnW, btnH)) {
+            playSound(SoundId::Button);
             returnToMainMenu();
             return;
         }
@@ -469,6 +480,8 @@ void handleUIKeyPress(
     if (action != GLFW_PRESS && action != GLFW_REPEAT) {
         return;
     }
+
+    if (handleAudioControlsKey(key, action)) return;
 
     // ESC toggles pause during gameplay
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {

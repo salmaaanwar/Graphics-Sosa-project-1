@@ -12,12 +12,27 @@ find_package(OpenGL REQUIRED)
 # Use the same image path for the game and optional rendering checks.
 add_compile_definitions(GAME_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets")
 
+# miniaudio 0.11.23, commit f40cf03f80cdb7e741d43e53b7e706e8c1394bcf.
+# One implementation shared by the game, exporter, and all test targets.
+find_package(Threads REQUIRED)
+add_library(GameAudio STATIC Audio.cpp)
+target_link_libraries(GameAudio PUBLIC Threads::Threads ${CMAKE_DL_LIBS})
+if(WIN32)
+    target_link_libraries(GameAudio PUBLIC winmm ole32 uuid)
+elseif(APPLE)
+    target_link_libraries(GameAudio PUBLIC "-framework CoreFoundation" "-framework CoreAudio" "-framework AudioToolbox")
+elseif(UNIX)
+    target_link_libraries(GameAudio PUBLIC m)
+endif()
+link_libraries(GameAudio)
+
 add_executable(OpenGLStarter
     main.cpp
     Renderer.cpp
     ExampleScene.cpp
     TextRenderer.cpp
     UI.cpp
+    AudioControls.cpp
     Game.cpp
     Cutscene.cpp
     Environment.cpp
@@ -36,7 +51,7 @@ target_link_libraries(OpenGLStarter PRIVATE glfw OpenGL::GL glm::glm)
 option(BUILD_KITCHEN_ASSET_EXPORTER "Export flat kitchen PNGs using the game's shape renderer" OFF)
 if(BUILD_KITCHEN_ASSET_EXPORTER)
     get_target_property(EXPORT_GAME_SOURCES OpenGLStarter SOURCES)
-    list(REMOVE_ITEM EXPORT_GAME_SOURCES main.cpp UI.cpp TextRenderer.cpp)
+    list(REMOVE_ITEM EXPORT_GAME_SOURCES main.cpp UI.cpp AudioControls.cpp TextRenderer.cpp)
     add_executable(KitchenAssetExporter tools/ExportKitchenAssets.cpp tools/FlatUIArtwork.cpp tools/FlatTextArtwork.cpp ${EXPORT_GAME_SOURCES})
     target_include_directories(KitchenAssetExporter PRIVATE . external/glad/include)
     target_link_libraries(KitchenAssetExporter PRIVATE glfw OpenGL::GL glm::glm)
@@ -51,7 +66,7 @@ if(BUILD_RENDER_SMOKE_TESTS)
     enable_testing()
     add_executable(RenderSmokeTests tests/RenderSmokeTests.cpp ExampleScene.cpp WaveManager.cpp Collectibles.cpp
     Game.cpp Enemy.cpp Cutscene.cpp Environment.cpp Player.cpp PlayerCombat.cpp
-    Deployment.cpp UI.cpp Renderer.cpp TextRenderer.cpp)
+    Deployment.cpp UI.cpp AudioControls.cpp Renderer.cpp TextRenderer.cpp)
     target_include_directories(RenderSmokeTests PRIVATE . external/glad/include)
     target_link_libraries(RenderSmokeTests PRIVATE glfw OpenGL::GL glm::glm)
     if(MINGW)
@@ -66,7 +81,7 @@ if(BUILD_REPOSITORY_TESTS)
     enable_testing()
     add_executable(RepositoryTests tests/RepositoryTests.cpp WaveManager.cpp Collectibles.cpp
         Game.cpp Enemy.cpp Cutscene.cpp Environment.cpp Player.cpp PlayerCombat.cpp
-        Deployment.cpp UI.cpp Renderer.cpp TextRenderer.cpp)
+        Deployment.cpp UI.cpp AudioControls.cpp Renderer.cpp TextRenderer.cpp)
     target_include_directories(RepositoryTests PRIVATE . external/glad/include)
     target_link_libraries(RepositoryTests PRIVATE glfw OpenGL::GL glm::glm)
     if(MINGW)
@@ -93,6 +108,7 @@ if(BUILD_PLAYER_ABILITY_TESTS)
         PlayerCombat.cpp
         Deployment.cpp
         UI.cpp
+        AudioControls.cpp
         Renderer.cpp
         TextRenderer.cpp
     )
@@ -120,6 +136,7 @@ if(BUILD_GAME_FLOW_TESTS)
         PlayerCombat.cpp
         Deployment.cpp
         UI.cpp
+        AudioControls.cpp
         Renderer.cpp
         TextRenderer.cpp
     )
@@ -129,4 +146,43 @@ if(BUILD_GAME_FLOW_TESTS)
         target_link_options(GameFlowTests PRIVATE -static-libgcc -static-libstdc++ -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic)
     endif()
     add_test(NAME GameFlow COMMAND GameFlowTests)
+endif()
+
+# Package audio next to the executable, independent of the launch directory.
+add_custom_command(TARGET OpenGLStarter POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/audio"
+        "$<TARGET_FILE_DIR:OpenGLStarter>/assets/audio")
+# Also refresh changed assets when a default build doesn't need to re-link.
+# TARGET_FILE_DIR creates a dependency on the executable, so no reverse
+# add_dependencies() is needed here (which would create a cycle).
+add_custom_target(RefreshGameAudio ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/audio"
+        "$<TARGET_FILE_DIR:OpenGLStarter>/assets/audio")
+
+option(BUILD_AUDIO_TESTS "Build audio event, control and MP3 decoding checks" OFF)
+if(BUILD_AUDIO_TESTS)
+    enable_testing()
+    add_executable(AudioTests tests/AudioTests.cpp WaveManager.cpp Collectibles.cpp
+        Game.cpp Enemy.cpp Cutscene.cpp Environment.cpp Player.cpp PlayerCombat.cpp
+        Deployment.cpp UI.cpp AudioControls.cpp Renderer.cpp TextRenderer.cpp)
+    target_include_directories(AudioTests PRIVATE . external/glad/include)
+    target_link_libraries(AudioTests PRIVATE glfw OpenGL::GL glm::glm)
+    add_test(NAME AudioEvents COMMAND AudioTests)
+    add_test(NAME AudioAssets COMMAND AudioTests --validate "${CMAKE_CURRENT_SOURCE_DIR}/assets/audio")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/audio-working-directory")
+    add_dependencies(AudioTests OpenGLStarter)
+    add_test(NAME AudioPackagedPlayback COMMAND AudioTests "$<TARGET_FILE_DIR:OpenGLStarter>")
+    set_tests_properties(AudioPackagedPlayback PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/audio-working-directory" TIMEOUT 60)
+    set_tests_properties(AudioEvents AudioAssets PROPERTIES TIMEOUT 60)
+    add_executable(AudioControlsRenderTests tests/AudioControlsRenderTests.cpp
+        WaveManager.cpp Collectibles.cpp Game.cpp Enemy.cpp Cutscene.cpp Environment.cpp
+        Player.cpp PlayerCombat.cpp Deployment.cpp UI.cpp AudioControls.cpp Renderer.cpp
+        TextRenderer.cpp ExampleScene.cpp)
+    target_include_directories(AudioControlsRenderTests PRIVATE . external/glad/include)
+    target_link_libraries(AudioControlsRenderTests PRIVATE glfw OpenGL::GL glm::glm)
+    add_test(NAME AudioControlsRender COMMAND AudioControlsRenderTests "${CMAKE_CURRENT_BINARY_DIR}/audio-captures")
+    set_tests_properties(AudioControlsRender PROPERTIES TIMEOUT 60)
 endif()

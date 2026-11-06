@@ -1,3 +1,4 @@
+#include "Audio.h"
 #include "PlayerCombat.h"
 #include "Environment.h"
 #include "Game.h"
@@ -67,6 +68,7 @@ static void advanceProjectiles(float dt)
         }
         int enemyId = findEnemyInPath(shot.lane, oldX - SPRAY_PROJECTILE_RADIUS, right);
         if (enemyId >= 0) {
+            playSound(SoundId::SprayHit);
             enemies.damage(enemyId, 1);
             projectiles.erase(projectiles.begin() + i);
         } else if (shot.x - SPRAY_PROJECTILE_RADIUS > getEnvironment().getLaneEndX()) {
@@ -104,10 +106,12 @@ void updatePlayerCombat(float dt)
 
             player.attackAnimation = PLAYER_ATTACK_ANIMATION_TIME;
             if (player.type == PLAYER_MELEE) {
+                playSound(SoundId::SwatterSwing);
                 player.attackCooldown += MELEE_ATTACK_INTERVAL;
                 float attackEndX = player.x + PLAYER_HALF_WIDTH + MELEE_ATTACK_REACH;
                 int enemyId = findEnemyInPath(player.lane, player.x, attackEndX);
                 if (enemyId >= 0) {
+                    playSound(SoundId::SwatterHit);
                     enemies.damage(enemyId, 1);
                 }
             } else if (player.type == PLAYER_RANGED) {
@@ -116,6 +120,7 @@ void updatePlayerCombat(float dt)
                 float shotX = player.x + PLAYER_HALF_WIDTH * 0.8f;
                 float shotY = player.y + 0.048f;
                 projectiles.push_back({player.lane, shotX, shotY});
+                playSound(SoundId::SprayFire);
             }
         }
         advanceProjectiles(step);

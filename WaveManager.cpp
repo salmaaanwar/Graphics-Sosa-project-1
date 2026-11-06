@@ -1,3 +1,4 @@
+#include "Audio.h"
 #include "WaveManager.h"
 #include "Enemy.h"
 #include "Environment.h"
@@ -20,12 +21,14 @@ static constexpr float SPAWN_INTERVALS[] = {
 static constexpr float WAVE_ANNOUNCEMENT_TIME = 2.0f;
 
 static int waveIndex = 0;
+static bool announcementPlayed = false;
 static int enemiesSpawned = 0;
 static double timeUntilSpawn = WAVE_ANNOUNCEMENT_TIME;
 
 void resetWaves()
 {
     waveIndex = 0;
+    announcementPlayed = false;
     enemiesSpawned = 0;
     timeUntilSpawn = WAVE_ANNOUNCEMENT_TIME;
 }
@@ -44,6 +47,7 @@ void updateWaves(float deltaTime)
         {
             ++waveIndex;
             enemiesSpawned = 0;
+            announcementPlayed = false;
             timeUntilSpawn = WAVE_ANNOUNCEMENT_TIME;
             if (waveIndex == WAVE_COUNT)
             {
@@ -53,6 +57,10 @@ void updateWaves(float deltaTime)
         return;
     }
 
+    if (!announcementPlayed) {
+        playSound(SoundId::Wave);
+        announcementPlayed = true;
+    }
     timeUntilSpawn -= deltaTime;
     if (timeUntilSpawn > 0.0f)
     {

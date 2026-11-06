@@ -130,6 +130,12 @@ void drawText(
                 x, y, cellSize
             );
         }
+        else if (character == '%') {
+            static const char* percent[7] = {
+                "11001", "11010", "00010", "00100", "01000", "01011", "10011"
+            };
+            drawPattern(transformLocation, percent, x, y, cellSize);
+        }
         else if (character >= '0' && character <= '9') {
             drawDigit(
                 transformLocation,

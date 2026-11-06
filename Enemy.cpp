@@ -1,3 +1,4 @@
+#include "Audio.h"
 #include "Enemy.h"
 #include <algorithm>
 #include "Environment.h"
@@ -77,6 +78,7 @@ int spawnEnemy(int type, int lane)
     enemy.attackAnimation = 0.0f;
 
     enemies.push_back(enemy);
+    playSound(SoundId::Approaching);
     nextEnemyId++;
 
     return enemy.id;
@@ -100,6 +102,7 @@ static void damageEnemyById(int enemyId, int amount)
             } else if (enemy->type == ENEMY_HARD) {
                 coinValue = 20;
             }
+            playSound(SoundId::InsectDefeated);
             dropCollectible(enemy->x, enemy->y, coinValue);
             enemies.erase(enemy);
         }
@@ -232,6 +235,7 @@ void updateEnemies(float dt)
         if (enemy.x <= minimumX)
         {
             enemy.x = minimumX;
+            playSound(SoundId::FoodReached);
             finishGame(false);
             return;
         }

@@ -283,3 +283,11 @@ lab-style implementation notes, enemy integration functions for Members 3/4,
 reset behavior, and build/test instructions. The enemy adapter has no production
 provider yet; its test-only provider verifies damage and removal without adding
 another member's enemy or health implementation.
+
+## Music and sound effects
+
+The game now uses the 25 supplied MP3 assets for music, menus, combat, movement,
+deployment and waves. Music and Sound effects sliders are available in the main
+menu and pause menu, with independent mute buttons and keyboard controls. Pause
+freezes gameplay audio; Resume continues it; Restart begins the gameplay track
+again. See [audio setup and verification](assets/audio/README.md).
