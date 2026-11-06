@@ -9,6 +9,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(OpenGL REQUIRED)
 
+# Use the same image path for the game and optional rendering checks.
+add_compile_definitions(GAME_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets")
+
 add_executable(OpenGLStarter
     main.cpp
     Renderer.cpp

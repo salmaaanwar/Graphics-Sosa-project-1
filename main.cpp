@@ -26,8 +26,10 @@ const char *vertexShaderSrc = R"(
 layout (location = 0) in vec3 aPos;
 uniform mat4 u_Transform;
 uniform mat4 u_Projection;
+out vec2 textureCoordinates;
 void main() {
     gl_Position = u_Projection * u_Transform * vec4(aPos, 1.0);
+    textureCoordinates = vec2(aPos.x + 0.5, 0.5 - aPos.y);
 }
 )";
 
@@ -35,9 +37,18 @@ void main() {
 const char *fragmentShaderSrc = R"(
 #version 330 core
 out vec4 FragColor;
+in vec2 textureCoordinates;
 uniform vec3 uColor;
+uniform bool uUseTexture;
+uniform sampler2D uTexture;
+uniform vec2 uTextureCrop;
 void main() {
-    FragColor = vec4(uColor, 1.0);
+    if (uUseTexture) {
+        vec2 uv = (textureCoordinates - 0.5) * uTextureCrop + 0.5;
+        FragColor = texture(uTexture, uv) * vec4(uColor, 1.0);
+    } else {
+        FragColor = vec4(uColor, 1.0);
+    }
 }
 )";
 
@@ -286,6 +297,16 @@ int main()
     GLint colorLocation = glGetUniformLocation(shaderProgram, "uColor");
     GLint projectionLocation = glGetUniformLocation(shaderProgram, "u_Projection");
 
+    if (!loadKitchenBackground())
+    {
+        glDeleteVertexArrays(1, &VAO);
+        glDeleteBuffers(1, &VBO);
+        glDeleteProgram(shaderProgram);
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return -1;
+    }
+
     const bool showExamples = false;
     double lastFrame = glfwGetTime();
     Environment &environment = getEnvironment();
@@ -309,6 +330,8 @@ int main()
         glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
 
         glBindVertexArray(VAO);
+
+        drawKitchenBackground(transformLocation, colorLocation, projection);
 
         glm::vec2 mouseWorld(-99.0f, -99.0f);
         mouseToWorld(window, projection, mouseWorld);
@@ -384,6 +407,7 @@ int main()
     }
 
     // cleanup
+    releaseKitchenBackground();
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteProgram(shaderProgram);

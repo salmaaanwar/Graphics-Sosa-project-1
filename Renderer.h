@@ -3,6 +3,12 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
+// Kitchen image shared by the menu, intro and battlefield.
+bool loadKitchenBackground();
+void releaseKitchenBackground();
+void drawKitchenBackground(GLint transformLocation, GLint colorLocation,
+                           const glm::mat4& projection);
+
 //triangle drawing
 void drawTriangle(
     GLint transformLocation,

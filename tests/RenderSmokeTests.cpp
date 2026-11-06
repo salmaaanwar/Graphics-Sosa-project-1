@@ -43,6 +43,7 @@ int main(int argc, char** argv)
     glGetProgramiv(program, GL_LINK_STATUS, &linked);
     check(linked != 0, "production shaders link");
     glUseProgram(program);
+    check(loadKitchenBackground(), "kitchen image loads from the configured asset directory");
 
     std::vector<float> vertices = {-0.5f,-0.5f,0, 0.5f,-0.5f,0, 0.5f,0.5f,0,
                                   -0.5f,-0.5f,0, 0.5f,0.5f,0, -0.5f,0.5f,0};
@@ -76,6 +77,7 @@ int main(int argc, char** argv)
         glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         glUniformMatrix4fv(p, 1, GL_FALSE, glm::value_ptr(projection));
+        drawKitchenBackground(t, c, projection);
         int state = getGameState();
         if (state == STATE_MAIN_MENU) drawUI(t, c, circleStart, circleCount, triangleStart, -99, -99);
         else if (state == STATE_CUTSCENE) {
@@ -84,8 +86,10 @@ int main(int argc, char** argv)
         }
         else {
             getEnvironment().render(t, c, circleStart, circleCount, triangleStart);
+            drawEnemies(t, c, circleStart, circleCount, triangleStart);
             drawPlayers(t, c, circleStart, circleCount, triangleStart);
             drawPlayerCombat(t, c, circleStart, circleCount);
+            drawCollectibles(t, c, circleStart, circleCount);
             if (state == STATE_PLAYING || state == STATE_PAUSED)
                 drawHUD(t, c, circleStart, circleCount, triangleStart, -99, -99);
             if (state == STATE_PLAYING) drawWaveStatus(t, c);
@@ -99,6 +103,14 @@ int main(int argc, char** argv)
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
         check(glGetError() == GL_NO_ERROR, "framebuffer readback has no OpenGL errors");
+        // Every corner must be covered even in portrait and ultrawide windows.
+        for (int corner : {0, width - 1, (height - 1) * width, width * height - 1}) {
+            const unsigned char* pixel = pixels.data() + corner * 3;
+            bool clearColor = std::abs(int(pixel[0]) - 26) <= 1 &&
+                              std::abs(int(pixel[1]) - 26) <= 1 &&
+                              std::abs(int(pixel[2]) - 38) <= 1;
+            check(!clearColor, "kitchen covers the window corners without empty borders");
+        }
         if (!output.empty() && !name.empty()) {
             std::ofstream image(output + "/" + name + ".ppm", std::ios::binary);
             image << "P6\n" << width << ' ' << height << "\n255\n";
@@ -110,7 +122,8 @@ int main(int argc, char** argv)
     };
 
     for (const auto& size : {glm::ivec2(800,600), glm::ivec2(1280,720), glm::ivec2(600,800),
-                             glm::ivec2(320,240), glm::ivec2(1920,1080)}) {
+                             glm::ivec2(320,240), glm::ivec2(1920,1080),
+                             glm::ivec2(2560,1080), glm::ivec2(800,800)}) {
         glfwSetWindowSize(window, size.x, size.y);
         glfwPollEvents();
         glfwGetFramebufferSize(window, &width, &height);
@@ -122,7 +135,7 @@ int main(int argc, char** argv)
         check(projection == before, "zero-sized framebuffer preserves projection");
         std::string prefix = std::to_string(size.x) + "x" + std::to_string(size.y) + "-";
         returnToMainMenu();
-        render(size.x == 800 ? "menu" : "");
+        render(prefix + "menu");
         click(0, 0.02f);
         check(getGameState() == STATE_CUTSCENE, "actual Start callback opens the intro");
         for (int second = 0; second < 16; second += 2) {
@@ -131,12 +144,12 @@ int main(int argc, char** argv)
         }
         updateGame(2);
         check(isGameplayRunning(), "intro transitions to gameplay");
-        click(-0.74f, 0.84f);
-        check(getSelectedCard() == PLAYER_MELEE, "actual card callback arms melee");
         click(1.2f, 0.43f);
         check(getCollectibles() == 30, "click outside the grid spends nothing");
         click(0, getEnvironment().getLaneCenterY(0));
-        check(getPlayers().size() == 1 && getCollectibles() == 20, "actual lane callback buys one player");
+        check(getPlayers().empty(), "selecting a lane does not spend coins");
+        click(-0.74f, 0.84f);
+        check(getPlayers().size() == 1 && getCollectibles() == 20, "card click deploys into the selected lane");
         keyCallback(window, GLFW_KEY_W, 0, GLFW_PRESS, 0);
         check(getPlayers()[0].pose == POSE_JUMPING, "actual key callback jumps in the selected lane");
         updateGame(0.7f);
@@ -145,10 +158,12 @@ int main(int argc, char** argv)
         }
         updateCollectibles();
         setCollectibles(200);
+        click(0, getEnvironment().getLaneCenterY(0));
+        click(0, getEnvironment().getLaneCenterY(1));
         click(-0.44f, 0.84f);
         click(0, getEnvironment().getLaneCenterY(1));
-        click(-0.14f, 0.84f);
         click(0, getEnvironment().getLaneCenterY(2));
+        click(-0.14f, 0.84f);
         check(getPlayers().size() == 3 && getCollectibles() == 200 - RANGED_COST - DEFENSE_COST, "spray and sheet purchases use real callbacks");
         updateGame(0.13f);
         render(prefix + "playing");
@@ -176,7 +191,8 @@ int main(int argc, char** argv)
     returnToMainMenu();
     click(0, -0.28f);
     check(glfwWindowShouldClose(window), "Exit button closes the actual GLFW window");
-    std::cout << frames << " frames passed across five sizes: shaders, rendering, callbacks, pause and reset.\n";
+    std::cout << frames << " frames passed across seven sizes: kitchen coverage, shaders, rendering, callbacks, pause and reset.\n";
+    releaseKitchenBackground();
     glDeleteBuffers(1, &vbo); glDeleteVertexArrays(1, &vao);
     glDeleteShader(vs); glDeleteShader(fs); glDeleteProgram(program);
     glfwDestroyWindow(window); glfwTerminate();

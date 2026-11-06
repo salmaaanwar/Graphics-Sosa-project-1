@@ -45,8 +45,7 @@ static void drawKitchen(GLint transformLocation, GLint colorLocation,
     int circleVertexStart, int circleVertexCount)
 {
     // Tile wall, countertop and a cabinet: composite scenery, like the UI icons.
-    glUniform3f(colorLocation, 0.12f, 0.17f, 0.22f);
-    drawRectangle(transformLocation, 0.0f, 0.0f, 20.0f, 20.0f);
+    // The shared kitchen image fills the space around the animated stage.
     glUniform3f(colorLocation, 0.80f, 0.88f, 0.83f);
     drawRectangle(transformLocation, 0.0f, 0.12f, 1.88f, 0.92f);
     glUniform3f(colorLocation, 0.64f, 0.75f, 0.69f);
