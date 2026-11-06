@@ -1,7 +1,11 @@
+#include <algorithm>
+#include <cmath>
+
 #include "Deployment.h"
 #include "Environment.h"
 #include "Game.h"
 #include "Player.h"
+
 
 static int collectibles = STARTING_COLLECTIBLES;
 static int enemyDropsCollected = 0;
@@ -49,29 +53,69 @@ void collectEnemyDrop(int value)
 void selectPlayerCard(int type)
 {
     if (!isGameplayRunning() || !isCardUnlocked(type)) return;
-    selectedCard = selectedCard == type ? -1 : type;
+
+    const auto lanes = getEnvironment().getSelectedLanes();
+    if (lanes.empty()) return;
+
+    for (int lane : lanes) {
+        if (!isCardUnlocked(type)) break;
+
+        // Deploy into a lane; defense uses its remembered click position.
+        // Failed placements spend nothing.
+        selectedCard = type;
+        deploySelectedPlayer(lane);
+    }
+
+    selectedCard = -1;
 }
 
 bool deploySelectedPlayer(int lane)
 {
-    if (!isGameplayRunning() || !isCardUnlocked(selectedCard)) return false;
-    if (lane < 0 || lane >= getEnvironment().getLaneCount()) return false;
+    if (!isGameplayRunning() || !isCardUnlocked(selectedCard)) {
+        return false;
+    }
 
-    // Friendly units may overlap and pass one another. A second stationary sheet
-    // at the same deployment position would hide the first, so reject that case.
+    const Environment& env = getEnvironment();
+
+    if (lane < 0 || lane >= env.getLaneCount()) {
+        return false;
+    }
+
+    float x = env.getPlacementX(lane);
+    if (!std::isfinite(x)) return false;
+
+    // Keep the defense hitbox inside the lane.
+    float left = env.getLaneStartX() + PLAYER_HALF_WIDTH;
+    float right = env.getLaneEndX() - PLAYER_HALF_WIDTH;
+
+    if (x < left) x = left;
+    if (x > right) x = right;
+
+    // Multiple defenses may share a lane if they do not overlap.
     if (selectedCard == PLAYER_DEFENSE) {
-        const std::vector<Player>& players = getPlayers();
-        for (const Player& player : players) {
-            if (player.lane == lane && player.type == PLAYER_DEFENSE && player.hp > 0) {
+        for (const Player& player : getPlayers()) {
+            if (player.lane == lane &&
+                player.type == PLAYER_DEFENSE &&
+                player.hp > 0 &&
+                std::fabs(player.x - x) < 2.0f * PLAYER_HALF_WIDTH) {
                 return false;
             }
         }
     }
 
-    int cost = getPlayerCost(selectedCard);
-    if (spawnPlayer(selectedCard, lane) < 0) return false;
+    int type = selectedCard;
+    int cost = getPlayerCost(type);
+
+    int index = spawnPlayer(type, lane);
+    if (index < 0) return false;
+
+    if (type == PLAYER_DEFENSE) {
+        getPlayers()[index].x = x;
+    }
+
     setCollectibles(collectibles - cost);
     selectedCard = -1;
+
     return true;
 }
 

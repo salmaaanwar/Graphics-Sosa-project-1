@@ -10,6 +10,8 @@
 static std::vector<Enemy> enemies;
 static std::vector<EnemyProjectile> enemyProjectiles;
 static int nextEnemyId = 0;
+static constexpr float SHOT_RECOVERY_TIME = 0.9f;
+static float shotRecovery = SHOT_RECOVERY_TIME;
 static void damageEnemyById(int enemyId, int amount);
 static void connectEnemyCombat()
 {
@@ -23,6 +25,7 @@ std::vector<Enemy> &getEnemies()
 
 void resetEnemies()
 {
+    shotRecovery = SHOT_RECOVERY_TIME;
     enemies.clear();
     enemyProjectiles.clear();
     nextEnemyId = 0;
@@ -174,6 +177,12 @@ void updateEnemies(float dt)
 
     updateEnemyProjectiles(dt);
 
+    if (!enemyProjectiles.empty()) {
+        shotRecovery = SHOT_RECOVERY_TIME;
+    } else if (shotRecovery > 0.0f) {
+        shotRecovery -= dt;
+    }
+
     clearAllPlayerBlocks();
 
     const auto& players = getPlayers();
@@ -234,7 +243,7 @@ void updateEnemies(float dt)
         {
             enemy.attackCooldown -= dt;
 
-            if (enemy.attackCooldown <= 0.0f)
+            if (enemy.attackCooldown <= 0.0f && enemyProjectiles.empty() && shotRecovery <= 0.0f)
             {
                 EnemyProjectile bullet;
 
@@ -252,8 +261,10 @@ void updateEnemies(float dt)
                 }
 
                 enemyProjectiles.push_back(bullet);
+                shotRecovery = SHOT_RECOVERY_TIME;
+
                 enemy.attackAnimation = 0.20f;
-                enemy.attackCooldown += 1.0f;
+                enemy.attackCooldown = 2.0f;
             }
         }
         // cockroach melee attack

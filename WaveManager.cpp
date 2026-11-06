@@ -9,7 +9,14 @@
 
 static constexpr int WAVE_SIZES[] = {3, 5, 10};
 static constexpr int WAVE_COUNT = sizeof(WAVE_SIZES) / sizeof(WAVE_SIZES[0]);
-static constexpr float SPAWN_INTERVAL = 1.2f;
+
+// Seconds between enemies in waves 1, 2 and 3.
+static constexpr float SPAWN_INTERVALS[] = {
+    3.5f,
+    4.5f,
+    5.5f
+};
+
 static constexpr float WAVE_ANNOUNCEMENT_TIME = 2.0f;
 
 static int waveIndex = 0;
@@ -62,10 +69,13 @@ void updateWaves(float deltaTime)
         enemyType = ENEMY_MEDIUM;
     }
 
-    const int lane = std::rand() % getEnvironment().getLaneCount();
+    // Use each lane in turn before repeating.
+    const int lane =
+        (enemiesSpawned + waveIndex)
+        % getEnvironment().getLaneCount();
     spawnEnemy(enemyType, lane);
     ++enemiesSpawned;
-    timeUntilSpawn = SPAWN_INTERVAL;
+    timeUntilSpawn = SPAWN_INTERVALS[waveIndex];
 }
 
 void drawWaveStatus(GLint transformLocation, GLint colorLocation)

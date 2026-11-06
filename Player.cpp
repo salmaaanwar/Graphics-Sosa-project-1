@@ -138,11 +138,17 @@ void updatePlayers(float dt)
         // melee and ranged move right automatically; defense stays stationary
         if (player.type != PLAYER_DEFENSE && !player.blockedByEnemy) {
             player.x += PLAYER_SPEED * dt;
-            if (player.x > maxRightX) {
-                player.x = maxRightX;
-            }
         }
     }
+
+    // Remove finished characters from rendering, controls and combat.
+    for (int i = (int)players.size() - 1; i >= 0; --i) {
+        if (players[i].type != PLAYER_DEFENSE &&
+            players[i].x >= maxRightX) {
+            players.erase(players.begin() + i);
+        }
+    }
+
 }
 
 void handlePlayerKeyPress(int key, int action)

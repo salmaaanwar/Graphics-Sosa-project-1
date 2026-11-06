@@ -22,6 +22,7 @@ public:
     float getLaneStartX() const;
     float getLaneEndX() const;
     float getHomeBaseRightEdgeX() const;
+    float getPlacementX(int lane) const;
     int getLaneAtPoint(float x, float y) const;
     bool isLaneSelected(int i) const;
     std::vector<int> getSelectedLanes() const;
@@ -34,4 +35,6 @@ private:
     bool leftButtonDown = false;
     float elapsed = 0.0f;
     bool selected[LANE_COUNT] = { false, false, false, false };
+    float placementX[LANE_COUNT] = {};
+    bool hasPlacement[LANE_COUNT] = {};
 };
