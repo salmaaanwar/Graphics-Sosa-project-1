@@ -46,6 +46,7 @@ std::vector<Enemy>& getEnemies();
 
 //clear enemies when resetting the game
 void resetEnemies();
+void resizeEnemyPositions(float scale, float offset);
 void damageEnemy(int enemyId, int amount);
 
 //draw enemy models

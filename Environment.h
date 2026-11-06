@@ -10,6 +10,9 @@ public:
     static const int LANE_COUNT = 4;
 
     void update(float dt);
+    void setViewSize(float halfWidth, float halfHeight);
+    float getViewHalfWidth() const { return viewHalfWidth; }
+    float getViewHalfHeight() const { return viewHalfHeight; }
     void render(GLint transformLocation, GLint colorLocation,
                 int circleVertexStart, int circleVertexCount, int triangleVertexStart);
     void handleMouseMove(float mouseX, float mouseY);
@@ -30,6 +33,8 @@ public:
     void reset();
 
 private:
+    float viewHalfWidth = 1.0f;
+    float viewHalfHeight = 1.0f;
     float mouseX = -99.0f;
     float mouseY = -99.0f;
     bool leftButtonDown = false;

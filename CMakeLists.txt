@@ -9,6 +9,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(OpenGL REQUIRED)
 
+# Use the same image path for the game and optional rendering checks.
+add_compile_definitions(GAME_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets")
+
 add_executable(OpenGLStarter
     main.cpp
     Renderer.cpp
@@ -28,6 +31,16 @@ add_executable(OpenGLStarter
 
 target_include_directories(OpenGLStarter PRIVATE external/glad/include)
 target_link_libraries(OpenGLStarter PRIVATE glfw OpenGL::GL glm::glm)
+
+# Optional offline artwork export; the game itself only loads the resulting PNGs.
+option(BUILD_KITCHEN_ASSET_EXPORTER "Export flat kitchen PNGs using the game's shape renderer" OFF)
+if(BUILD_KITCHEN_ASSET_EXPORTER)
+    get_target_property(EXPORT_GAME_SOURCES OpenGLStarter SOURCES)
+    list(REMOVE_ITEM EXPORT_GAME_SOURCES main.cpp UI.cpp TextRenderer.cpp)
+    add_executable(KitchenAssetExporter tools/ExportKitchenAssets.cpp tools/FlatUIArtwork.cpp tools/FlatTextArtwork.cpp ${EXPORT_GAME_SOURCES})
+    target_include_directories(KitchenAssetExporter PRIVATE . external/glad/include)
+    target_link_libraries(KitchenAssetExporter PRIVATE glfw OpenGL::GL glm::glm)
+endif()
 if(MINGW)
     target_link_options(OpenGLStarter PRIVATE -static-libgcc -static-libstdc++ -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic)
 endif()

@@ -1,4 +1,5 @@
 #include "Enemy.h"
+#include <algorithm>
 #include "Environment.h"
 #include "Game.h"
 #include "Renderer.h"
@@ -9,6 +10,12 @@
 
 static std::vector<Enemy> enemies;
 static std::vector<EnemyProjectile> enemyProjectiles;
+
+void resizeEnemyPositions(float scale, float offset)
+{
+    for (Enemy& enemy : enemies) enemy.x = enemy.x * scale + offset;
+    for (EnemyProjectile& shot : enemyProjectiles) shot.x = shot.x * scale + offset;
+}
 static int nextEnemyId = 0;
 static constexpr float SHOT_RECOVERY_TIME = 0.9f;
 static float shotRecovery = SHOT_RECOVERY_TIME;
@@ -306,169 +313,6 @@ void updateEnemies(float dt)
     }
 }
 
-// ant with a slingshot
-void drawAnt(
-    GLint transformLocation,
-    GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
-    float x,
-    float y,
-    float attackAnimation)
-{
-    // legs
-    glUniform3f(colorLocation, 0.20f, 0.10f, 0.05f);
-
-    for (int leg = 0; leg < 3; leg++)
-    {
-        float legX = x - 0.02f + leg * 0.025f;
-
-        drawRectangle(transformLocation,
-                      legX, y - 0.03f, 0.008f, 0.05f, 35.0f);
-
-        drawRectangle(transformLocation,
-                      legX, y - 0.03f, 0.008f, 0.05f, -35.0f);
-    }
-
-    // abdomen, middle body, and head
-    glUniform3f(colorLocation, 0.45f, 0.18f, 0.08f);
-
-    drawCircle(transformLocation,
-               circleVertexStart, circleVertexCount,
-               x + 0.035f, y, 0.028f);
-
-    drawCircle(transformLocation,
-               circleVertexStart, circleVertexCount,
-               x, y, 0.018f);
-
-    drawCircle(transformLocation,
-               circleVertexStart, circleVertexCount,
-               x - 0.035f, y, 0.023f);
-
-    // antennae
-    glUniform3f(colorLocation, 0.20f, 0.10f, 0.05f);
-
-    drawRectangle(transformLocation,
-                  x - 0.05f, y + 0.028f, 0.005f, 0.035f, 30.0f);
-
-    drawRectangle(transformLocation,
-                  x - 0.025f, y + 0.028f, 0.005f, 0.035f, -30.0f);
-
-    // eye
-    glUniform3f(colorLocation, 0.95f, 0.85f, 0.65f);
-
-    drawCircle(transformLocation,
-               circleVertexStart, circleVertexCount,
-               x - 0.045f, y + 0.005f, 0.006f);
-
-    // slingshot recoil
-    float slingX = x - 0.075f + attackAnimation * 0.08f;
-
-    glUniform3f(colorLocation, 0.35f, 0.16f, 0.05f);
-
-    drawRectangle(transformLocation,
-                  slingX, y - 0.07f, 0.012f, 0.04f);
-
-    drawRectangle(transformLocation,
-                  slingX - 0.009f, y - 0.045f,
-                  0.01f, 0.035f, 30.0f);
-
-    drawRectangle(transformLocation,
-                  slingX + 0.009f, y - 0.045f,
-                  0.01f, 0.035f, -30.0f);
-
-    // rubber band
-    glUniform3f(colorLocation, 0.10f, 0.10f, 0.15f);
-
-    drawRectangle(transformLocation,
-                  slingX, y - 0.03f, 0.035f, 0.005f);
-}
-
-// cockroach with a claymore
-void drawCockroach(
-    GLint transformLocation,
-    GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
-    int triangleVertexStart,
-    float x,
-    float y,
-    float attackAnimation)
-{
-    // six legs
-    glUniform3f(colorLocation, 0.18f, 0.08f, 0.03f);
-
-    for (int leg = 0; leg < 3; leg++)
-    {
-        float legY = y + 0.025f - leg * 0.025f;
-
-        drawRectangle(transformLocation,
-                      x - 0.045f, legY, 0.045f, 0.008f, 25.0f);
-
-        drawRectangle(transformLocation,
-                      x + 0.045f, legY, 0.045f, 0.008f, -25.0f);
-    }
-
-    // body
-    glUniform3f(colorLocation, 0.30f, 0.12f, 0.04f);
-
-    drawCircle(transformLocation,
-               circleVertexStart, circleVertexCount,
-               x, y - 0.015f, 0.04f);
-
-    drawRectangle(transformLocation,
-                  x, y + 0.005f, 0.065f, 0.07f);
-
-    // wing covers
-    glUniform3f(colorLocation, 0.55f, 0.28f, 0.10f);
-
-    drawRectangle(transformLocation,
-                  x - 0.016f, y, 0.026f, 0.07f, -8.0f);
-
-    drawRectangle(transformLocation,
-                  x + 0.016f, y, 0.026f, 0.07f, 8.0f);
-
-    // head and antennae
-    glUniform3f(colorLocation, 0.18f, 0.08f, 0.03f);
-
-    drawCircle(transformLocation,
-               circleVertexStart, circleVertexCount,
-               x - 0.025f, y + 0.04f, 0.023f);
-
-    drawRectangle(transformLocation,
-                  x - 0.045f, y + 0.075f, 0.005f, 0.06f, 30.0f);
-
-    drawRectangle(transformLocation,
-                  x - 0.015f, y + 0.075f, 0.005f, 0.06f, -20.0f);
-
-    // eye
-    glUniform3f(colorLocation, 0.95f, 0.15f, 0.10f);
-
-    drawCircle(transformLocation,
-               circleVertexStart, circleVertexCount,
-               x - 0.035f, y + 0.045f, 0.006f);
-
-    // sword thrust toward the player
-    float swordX = x - 0.075f - attackAnimation * 0.15f;
-
-    // blade and pointed tip
-    glUniform3f(colorLocation, 0.70f, 0.80f, 0.90f);
-
-    drawRectangle(transformLocation,
-                  swordX, y + 0.015f, 0.018f, 0.10f);
-
-    drawTriangle(transformLocation, triangleVertexStart,
-                 swordX, y + 0.075f, 0.018f, 0.02f);
-
-    // guard and handle
-    glUniform3f(colorLocation, 0.25f, 0.18f, 0.10f);
-
-    drawRectangle(transformLocation,
-                  swordX, y - 0.04f, 0.05f, 0.01f);
-
-    drawRectangle(transformLocation,
-                  swordX, y - 0.06f, 0.012f, 0.03f);
-}
 void drawEnemies(
     GLint transformLocation,
     GLint colorLocation,
@@ -480,85 +324,17 @@ void drawEnemies(
     {
         drawHealthBar(transformLocation, colorLocation, enemy.x, enemy.y + 0.12f, enemy.hp, enemy.maxHp);
         float redness = 1.0f - (float)enemy.hp / enemy.maxHp;
-        glUniform3f(colorLocation, 0.75f + 0.25f * redness, 0.75f * (1.0f - redness), 0.75f * (1.0f - redness));
-        if (enemy.type == ENEMY_EASY)
-        {
-            float recoil = enemy.attackAnimation * 0.06f;
+        int frame=enemy.attackAnimation>0 ? 1+std::min(3,int(enemy.attackAnimation/.20f*4)) : 0;
+        drawCharacterImage(transformLocation,colorLocation,
+            "enemy-"+std::to_string(enemy.type)+"-"+std::to_string(frame),enemy.x,enemy.y,redness);
 
-            drawMenuInsect(
-                transformLocation,
-                colorLocation,
-                circleVertexStart,
-                circleVertexCount,
-                triangleVertexStart,
-                enemy.x + recoil,
-                enemy.y + 0.05f,
-                0.11f);
-
-            // muzzle flash while firing
-            if (enemy.attackAnimation > 0.0f)
-            {
-                glUniform3f(colorLocation, 1.0f, 0.25f, 0.05f);
-
-                drawCircle(
-                    transformLocation,
-                    circleVertexStart,
-                    circleVertexCount,
-                    enemy.x + recoil - 0.08f,
-                    enemy.y + 0.045f,
-                    0.02f);
-            }
-        }
-        else if (enemy.type == ENEMY_MEDIUM)
-        {
-            drawAnt(
-                transformLocation,
-                colorLocation,
-                circleVertexStart,
-                circleVertexCount,
-                enemy.x,
-                enemy.y,
-                enemy.attackAnimation);
-        }
-
-        else if (enemy.type == ENEMY_HARD)
-        {
-            drawCockroach(
-                transformLocation,
-                colorLocation,
-                circleVertexStart,
-                circleVertexCount,
-                triangleVertexStart,
-                enemy.x,
-                enemy.y,
-                enemy.attackAnimation);
-        }
-
-        if (redness > 0.0f) {
-            glUniform3f(colorLocation, 0.85f, 0.12f, 0.10f);
-            drawCircle(transformLocation, circleVertexStart, circleVertexCount,
-                       enemy.x, enemy.y, 0.008f + redness * 0.015f);
-        }
     }
 
     for (const EnemyProjectile& projectile : enemyProjectiles)
     {
-        if (projectile.type == ENEMY_EASY)
-        {
-            glUniform3f(colorLocation, 0.30f, 0.05f, 0.40f);
-        }
-        else
-        {
-            glUniform3f(colorLocation, 0.15f, 0.15f, 0.18f);
-        }
-
-        drawCircle(
-            transformLocation,
-            circleVertexStart,
-            circleVertexCount,
-            projectile.x,
-            projectile.y,
-            0.012f);
+        drawIntroImage(transformLocation,colorLocation,
+                       "projectile-enemy-"+std::to_string(projectile.type==ENEMY_EASY ? 0 : 1),
+                       projectile.x,projectile.y,.10f,.10f);
     }
 }
 

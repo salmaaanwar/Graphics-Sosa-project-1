@@ -5,6 +5,7 @@
 #include "Renderer.h"
 #include "UI.h"
 #include <cmath>
+#include <algorithm>
 
 // player movement and jump/duck settings
 const float PLAYER_SPEED       = 0.14f;
@@ -180,185 +181,6 @@ void handlePlayerKeyPress(int key, int action)
     }
 }
 
-// detailed melee fly swatter player model
-void drawMeleePlayer(
-    const Player& p,
-    GLint transformLocation,
-    GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
-    int triangleVertexStart
-) {
-    float scaleX = 0.085f;
-    float scaleY = 0.085f;
-    if (p.pose == POSE_DUCKING) {
-        scaleY = 0.055f; // crouch down when ducking
-    }
-
-    float step = 0.0f;
-    if (!p.blockedByEnemy) {
-        step = 0.012f * sinf(p.animTime * 8.0f);
-    }
-    float strike = p.attackAnimation > 0.0f
-        ? sinf((1.0f - p.attackAnimation / PLAYER_ATTACK_ANIMATION_TIME) * 3.14159265f) : 0.0f;
-    float armSwing = -65.0f * strike;
-    float headX = p.x + 0.040f * strike;
-    float headY = p.y - 0.020f * strike;
-
-    // walking feet
-    setPlayerColor(colorLocation, 0.18f, 0.20f, 0.24f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x - 0.22f * scaleX + step, p.y - 0.98f * scaleY, 0.30f * scaleX, 0.18f * scaleY);
-    drawRectangle(transformLocation, p.x + 0.22f * scaleX - step, p.y - 0.98f * scaleY, 0.30f * scaleX, 0.18f * scaleY);
-
-    // handle grip
-    setPlayerColor(colorLocation, 0.25f, 0.25f, 0.30f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x, p.y - 0.50f * scaleY, 0.18f * scaleX, 0.75f * scaleY);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x, p.y - 0.85f * scaleY, 0.10f * scaleX);
-
-    // neck connector
-    setPlayerColor(colorLocation, 0.85f, 0.25f, 0.30f, p.hp, p.maxHp);
-    drawTriangle(transformLocation, triangleVertexStart, p.x, p.y - 0.08f * scaleY, 0.52f * scaleX, 0.35f * scaleY, 180.0f);
-
-    // swatter head outer frame
-    setPlayerColor(colorLocation, 0.95f, 0.28f, 0.32f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, headX, headY + 0.38f * scaleY, 0.96f * scaleX, 0.86f * scaleY);
-
-    // inner mesh background
-    setPlayerColor(colorLocation, 0.55f, 0.12f, 0.16f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, headX, headY + 0.38f * scaleY, 0.76f * scaleX, 0.66f * scaleY);
-
-    // mesh grid lines
-    setPlayerColor(colorLocation, 1.0f, 0.55f, 0.58f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, headX - 0.20f * scaleX, headY + 0.38f * scaleY, 0.06f * scaleX, 0.66f * scaleY);
-    drawRectangle(transformLocation, headX,                  headY + 0.38f * scaleY, 0.06f * scaleX, 0.66f * scaleY);
-    drawRectangle(transformLocation, headX + 0.20f * scaleX, headY + 0.38f * scaleY, 0.06f * scaleX, 0.66f * scaleY);
-    drawRectangle(transformLocation, headX, headY + 0.18f * scaleY, 0.76f * scaleX, 0.06f * scaleY);
-    drawRectangle(transformLocation, headX, headY + 0.38f * scaleY, 0.76f * scaleX, 0.06f * scaleY);
-    drawRectangle(transformLocation, headX, headY + 0.58f * scaleY, 0.76f * scaleX, 0.06f * scaleY);
-
-    // eyes looking right
-    setPlayerColor(colorLocation, 0.98f, 0.98f, 0.95f, p.hp, p.maxHp);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, headX - 0.14f * scaleX, headY + 0.44f * scaleY, 0.13f * scaleX);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, headX + 0.18f * scaleX, headY + 0.44f * scaleY, 0.13f * scaleX);
-
-    setPlayerColor(colorLocation, 0.10f, 0.14f, 0.18f, p.hp, p.maxHp);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, headX - 0.10f * scaleX, headY + 0.44f * scaleY, 0.06f * scaleX);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, headX + 0.22f * scaleX, headY + 0.44f * scaleY, 0.06f * scaleX);
-
-    // swinging weapon arm in front
-    setPlayerColor(colorLocation, 0.92f, 0.30f, 0.32f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x + 0.48f * scaleX, p.y - 0.18f * scaleY, 0.55f * scaleX, 0.14f * scaleY, armSwing);
-}
-
-// detailed long range spray bottle player model
-void drawRangedPlayer(
-    const Player& p,
-    GLint transformLocation,
-    GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
-    int triangleVertexStart
-) {
-    float scaleX = 0.085f;
-    float scaleY = 0.085f;
-    if (p.pose == POSE_DUCKING) {
-        scaleY = 0.055f; // crouch down when ducking
-    }
-
-    float step = 0.0f;
-    if (!p.blockedByEnemy) {
-        step = 0.012f * sinf(p.animTime * 8.0f);
-    }
-    float sprayPulse = p.attackAnimation > 0.0f
-        ? sinf((1.0f - p.attackAnimation / PLAYER_ATTACK_ANIMATION_TIME) * 3.14159265f) : 0.0f;
-    float triggerPull = -22.0f * sprayPulse;
-
-    // walking feet
-    setPlayerColor(colorLocation, 0.14f, 0.35f, 0.55f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x - 0.22f * scaleX + step, p.y - 0.90f * scaleY, 0.30f * scaleX, 0.16f * scaleY);
-    drawRectangle(transformLocation, p.x + 0.18f * scaleX - step, p.y - 0.90f * scaleY, 0.30f * scaleX, 0.16f * scaleY);
-
-    // bottle body and shoulder taper
-    setPlayerColor(colorLocation, 0.18f, 0.68f, 0.95f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x - 0.05f * scaleX, p.y - 0.38f * scaleY, 0.78f * scaleX, 0.88f * scaleY);
-    drawTriangle(transformLocation, triangleVertexStart, p.x - 0.05f * scaleX, p.y + 0.22f * scaleY, 0.78f * scaleX, 0.38f * scaleY);
-
-    // bottle label and stripe
-    setPlayerColor(colorLocation, 0.95f, 0.98f, 1.0f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x - 0.05f * scaleX, p.y - 0.42f * scaleY, 0.56f * scaleX, 0.38f * scaleY);
-
-    setPlayerColor(colorLocation, 0.10f, 0.45f, 0.80f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x - 0.05f * scaleX, p.y - 0.42f * scaleY, 0.42f * scaleX, 0.12f * scaleY);
-
-    // eyes on bottle
-    setPlayerColor(colorLocation, 1.0f, 1.0f, 1.0f, p.hp, p.maxHp);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x - 0.16f * scaleX, p.y - 0.06f * scaleY, 0.11f * scaleX);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x + 0.10f * scaleX, p.y - 0.06f * scaleY, 0.11f * scaleX);
-
-    setPlayerColor(colorLocation, 0.10f, 0.15f, 0.22f, p.hp, p.maxHp);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x - 0.12f * scaleX, p.y - 0.06f * scaleY, 0.05f * scaleX);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x + 0.14f * scaleX, p.y - 0.06f * scaleY, 0.05f * scaleX);
-
-    // yellow neck collar
-    setPlayerColor(colorLocation, 0.95f, 0.85f, 0.20f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x - 0.05f * scaleX, p.y + 0.42f * scaleY, 0.32f * scaleX, 0.16f * scaleY);
-
-    // spray head and nozzle
-    setPlayerColor(colorLocation, 0.95f, 0.30f, 0.30f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x + 0.04f * scaleX, p.y + 0.62f * scaleY, 0.64f * scaleX, 0.24f * scaleY);
-
-    // animated trigger lever
-    setPlayerColor(colorLocation, 0.88f, 0.18f, 0.18f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x + 0.24f * scaleX, p.y + 0.38f * scaleY, 0.10f * scaleX, 0.32f * scaleY, 22.0f + triggerPull);
-
-    // Mist appears only while the trigger is firing; moving shots are separate.
-    if (p.attackAnimation > 0.0f) {
-        setPlayerColor(colorLocation, 0.55f, 0.92f, 1.0f, p.hp, p.maxHp);
-        drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x + (0.50f + sprayPulse * 0.12f) * scaleX, p.y + 0.66f * scaleY, 0.07f * scaleX);
-        drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x + (0.64f + sprayPulse * 0.12f) * scaleX, p.y + 0.56f * scaleY, 0.05f * scaleX);
-    }
-}
-
-// detailed stationary defense sticky sheet player model
-void drawDefensePlayer(
-    const Player& p,
-    GLint transformLocation,
-    GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount
-) {
-    float scale = 0.085f;
-
-    // sturdy bottom stand
-    setPlayerColor(colorLocation, 0.45f, 0.28f, 0.12f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x, p.y - 0.78f * scale, 1.08f * scale, 0.18f * scale);
-
-    // outer cardboard frame
-    setPlayerColor(colorLocation, 0.65f, 0.42f, 0.18f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x, p.y - 0.05f * scale, 0.88f * scale, 1.35f * scale);
-
-    // top hanging roller
-    setPlayerColor(colorLocation, 0.82f, 0.58f, 0.28f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x, p.y + 0.68f * scale, 0.98f * scale, 0.20f * scale);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x - 0.49f * scale, p.y + 0.68f * scale, 0.10f * scale);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x + 0.49f * scale, p.y + 0.68f * scale, 0.10f * scale);
-
-    // yellow sticky glue surface
-    setPlayerColor(colorLocation, 0.98f, 0.88f, 0.22f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x, p.y - 0.08f * scale, 0.68f * scale, 1.08f * scale);
-
-    // glue drops
-    setPlayerColor(colorLocation, 0.92f, 0.65f, 0.10f, p.hp, p.maxHp);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x - 0.15f * scale, p.y + 0.20f * scale, 0.12f * scale);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x + 0.16f * scale, p.y - 0.05f * scale, 0.14f * scale);
-    drawCircle(transformLocation, circleVertexStart, circleVertexCount, p.x - 0.10f * scale, p.y - 0.35f * scale, 0.11f * scale);
-
-    // green defense shield cross
-    setPlayerColor(colorLocation, 0.35f, 0.80f, 0.30f, p.hp, p.maxHp);
-    drawRectangle(transformLocation, p.x, p.y - 0.08f * scale, 0.42f * scale, 0.12f * scale);
-    drawRectangle(transformLocation, p.x, p.y - 0.08f * scale, 0.12f * scale, 0.42f * scale);
-}
-
 void drawPlayers(
     GLint transformLocation,
     GLint colorLocation,
@@ -372,16 +194,16 @@ void drawPlayers(
         // A small green underline marks allies currently protected by a sheet.
         if (p.type != PLAYER_DEFENSE && getPlayerDamageReceiver(i, getEnvironment().getLaneEndX()) != i) {
             glUniform3f(colorLocation, 0.30f, 0.85f, 0.45f);
-            drawRectangle(transformLocation, p.x, p.y - 0.105f, 0.09f, 0.008f);
+            drawPictureTinted(transformLocation,"ui-fill",p.x,p.y-.105f,.09f,.008f);
         }
 
-        if (p.type == PLAYER_MELEE) {
-            drawMeleePlayer(p, transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
-        } else if (p.type == PLAYER_RANGED) {
-            drawRangedPlayer(p, transformLocation, colorLocation, circleVertexStart, circleVertexCount, triangleVertexStart);
-        } else {
-            drawDefensePlayer(p, transformLocation, colorLocation, circleVertexStart, circleVertexCount);
-        }
+        int pose=p.pose==POSE_DUCKING ? POSE_DUCKING : POSE_NORMAL;
+        int frame=p.blockedByEnemy ? 0 : int(p.animTime*8*2/3.14159265f)%4;
+        if(p.attackAnimation>0) frame=4+std::min(3,int((1-p.attackAnimation/PLAYER_ATTACK_ANIMATION_TIME)*4));
+        if(p.type==PLAYER_DEFENSE) {pose=POSE_NORMAL;frame=0;}
+        float damage=1.0f-float(p.hp)/p.maxHp;
+        drawCharacterImage(transformLocation,colorLocation,
+            "player-"+std::to_string(p.type)+"-"+std::to_string(pose)+"-"+std::to_string(frame),p.x,p.y,damage);
 
         // draw health bar above the player
         drawHealthBar(transformLocation, colorLocation, p.x, p.y + 0.105f, p.hp, p.maxHp);

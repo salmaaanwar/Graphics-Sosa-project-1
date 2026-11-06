@@ -85,11 +85,5 @@ void drawWaveStatus(GLint transformLocation, GLint colorLocation)
         return;
     }
 
-    glUniform3f(colorLocation, 0.85f, 0.72f, 0.45f);
-    drawRectangle(transformLocation, 0.0f, 0.57f, 0.88f, 0.15f);
-    glUniform3f(colorLocation, 0.16f, 0.20f, 0.28f);
-    drawRectangle(transformLocation, 0.0f, 0.57f, 0.85f, 0.12f);
-    glUniform3f(colorLocation, 1.0f, 0.92f, 0.30f);
-    drawCenteredText(transformLocation, "WAVE " + std::to_string(waveIndex + 1) + " STARTING",
-                     0.0f, 0.57f, 0.008f);
+    drawIntroImage(transformLocation,colorLocation,"wave-"+std::to_string(waveIndex+1),0,.57f,.88f,.15f);
 }

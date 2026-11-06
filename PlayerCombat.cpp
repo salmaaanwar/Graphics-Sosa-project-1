@@ -10,6 +10,11 @@ static const float MAX_COMBAT_STEP = 1.0f / 120.0f;
 static PlayerEnemyAccess enemies;
 static std::vector<PlayerProjectile> projectiles;
 
+void resizePlayerProjectiles(float scale, float offset)
+{
+    for (PlayerProjectile& shot : projectiles) shot.x = shot.x * scale + offset;
+}
+
 void connectPlayerCombatToEnemies(PlayerEnemyAccess access)
 {
     enemies = access;
@@ -164,11 +169,6 @@ void resetPlayerCombat()
 void drawPlayerCombat(GLint t, GLint c, int firstCircle, int circleCount)
 {
     for (const PlayerProjectile& shot : projectiles) {
-        glUniform3f(c, 0.12f, 0.55f, 0.75f);
-        drawRectangle(t, shot.x - 0.018f, shot.y, 0.045f, 0.008f);
-        glUniform3f(c, 0.55f, 0.94f, 1.0f);
-        drawCircle(t, firstCircle, circleCount, shot.x, shot.y, SPRAY_PROJECTILE_RADIUS);
-        glUniform3f(c, 0.94f, 1.0f, 1.0f);
-        drawCircle(t, firstCircle, circleCount, shot.x + 0.003f, shot.y + 0.004f, 0.004f);
+        drawIntroImage(t,c,"projectile-spray",shot.x,shot.y,.10f,.10f);
     }
 }

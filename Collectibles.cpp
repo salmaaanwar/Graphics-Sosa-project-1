@@ -14,6 +14,11 @@ struct CollectibleDrop
 
 static std::vector<CollectibleDrop> drops;
 
+void resizeCollectiblePositions(float scale, float offset)
+{
+    for (CollectibleDrop& drop : drops) drop.x = drop.x * scale + offset;
+}
+
 void dropCollectible(float x, float y, int value)
 {
     drops.push_back({x, y, value});
@@ -49,9 +54,6 @@ void drawCollectibles(GLint transformLocation, GLint colorLocation,
 {
     for (const CollectibleDrop& drop : drops)
     {
-        glUniform3f(colorLocation, 0.72f, 0.38f, 0.08f);
-        drawCircle(transformLocation, circleStart, circleCount, drop.x, drop.y, 0.025f);
-        glUniform3f(colorLocation, 1.0f, 0.82f, 0.25f);
-        drawCircle(transformLocation, circleStart, circleCount, drop.x, drop.y, 0.016f);
+        drawIntroImage(transformLocation,colorLocation,"icon-coin-0",drop.x,drop.y,.0625f,.0625f);
     }
 }

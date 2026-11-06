@@ -35,6 +35,7 @@ struct PlayerProjectile {
 const std::vector<PlayerProjectile>& getPlayerProjectiles();
 void updatePlayerCombat(float dt);
 void resetPlayerCombat();
+void resizePlayerProjectiles(float scale, float offset);
 void drawPlayerCombat(GLint transformLocation, GLint colorLocation,
                       int circleVertexStart, int circleVertexCount);
 
