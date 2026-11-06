@@ -154,27 +154,17 @@ int main(int argc, char** argv)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode *mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
-    GLFWwindow *window = nullptr;
-    if (mode)
-    {
-        glfwWindowHint(GLFW_RED_BITS, mode->redBits);
-        glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
-        glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
-        glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
-        window = glfwCreateWindow(mode->width, mode->height, "game", monitor, nullptr);
-    }
-    else
-    {
-        window = glfwCreateWindow(800, 600, "game", nullptr, nullptr);
-    }
+    // Use a maximized desktop window instead of monitor-attached fullscreen.
+    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+    GLFWwindow *window = glfwCreateWindow(800, 600, "game", nullptr, nullptr);
     if (!window)
     {
         std::cerr << "Failed to create window\n";
         glfwTerminate();
         return -1;
     }
+    // Menus and battlefield placement use the visible OS cursor.
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Match Lab 4: avoid drawing more frames than the display needs.
 
