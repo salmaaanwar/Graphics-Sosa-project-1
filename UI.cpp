@@ -447,7 +447,13 @@ void drawMainMenu(
     float mouseX,
     float mouseY
 ) {
-    // The shared kitchen image is drawn behind this menu in main.cpp.
+    // background and countertop strip
+    glUniform3f(colorLocation, 0.14f, 0.18f, 0.24f);
+    drawRectangle(transformLocation, 0.0f, 0.0f, 2.8f, 2.0f);
+
+    glUniform3f(colorLocation, 0.78f, 0.68f, 0.54f);
+    drawRectangle(transformLocation, 0.0f, -0.82f, 2.8f, 0.36f);
+
     // menu board frame
     glUniform3f(colorLocation, 0.85f, 0.72f, 0.45f);
     drawRectangle(transformLocation, 0.0f, 0.06f, 1.56f, 1.44f);
