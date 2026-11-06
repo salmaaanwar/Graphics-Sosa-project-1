@@ -2,7 +2,6 @@
 #include <glad/gl.h>
 #include <string>
 
-//digit drawing
 void drawDigit(
     GLint transformLocation, 
     int digit,
@@ -11,7 +10,7 @@ void drawDigit(
     float cellSize
 );
 
-//number drawing
+// Negative numbers are not rendered.
 void drawNumber(
     GLint transformLocation,
     int number, 
@@ -20,9 +19,9 @@ void drawNumber(
     float cellSize
 );
 
-//text drawing
+// Text starts at its top-left corner; the atlas uses uppercase ASCII glyphs.
 void drawText(
-    GLint transformlocation,
+    GLint transformLocation,
     const std::string& text,
     float x,
     float y,

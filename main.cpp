@@ -22,7 +22,6 @@
 
 glm::mat4 projection = glm::mat4(1.0f);
 
-// vertex shader
 const char *vertexShaderSrc = R"(
 #version 330 core
 layout (location = 0) in vec3 aPos;
@@ -35,7 +34,6 @@ void main() {
 }
 )";
 
-// fragment shader
 const char *fragmentShaderSrc = R"(
 #version 330 core
 out vec4 FragColor;
@@ -56,7 +54,6 @@ void main() {
 }
 )";
 
-// shader compilation
 GLuint compileShader(GLenum type, const char *src)
 {
     GLuint shader = glCreateShader(type);
@@ -79,7 +76,7 @@ GLuint compileShader(GLenum type, const char *src)
     return shader;
 }
 
-// window resizing and projection
+// Keep at least the central -1..1 square visible at any aspect ratio.
 void framebufferSizeCallback(
     GLFWwindow *,
     int width,
@@ -129,7 +126,10 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int)
         return;
     }
 
-    if (handleAudioControlsMouse(mouseWorld.x, mouseWorld.y, action)) return;
+    if (handleAudioControlsMouse(mouseWorld.x, mouseWorld.y, action))
+    {
+        return;
+    }
     getEnvironment().handleMouseButton(button, action, mouseWorld.x, mouseWorld.y);
 
     // The area below the HUD is handled by the battlefield during play.
@@ -307,7 +307,10 @@ int main(int argc, char** argv)
     const bool showExamples = false;
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    initializeAudio(argc > 0 ? std::filesystem::absolute(argv[0]).parent_path().string() : "");
+    const std::string executableDirectory = argc > 0
+        ? std::filesystem::absolute(argv[0]).parent_path().string()
+        : "";
+    initializeAudio(executableDirectory);
     audioGameStateChanged(-1, getGameState());
     double lastFrame = glfwGetTime();
     Environment &environment = getEnvironment();
@@ -322,7 +325,9 @@ int main(int argc, char** argv)
 
         updateAudio(deltaTime);
         if (!showExamples)
+        {
             updateGame(deltaTime);
+        }
 
         glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);

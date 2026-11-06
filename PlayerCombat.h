@@ -9,7 +9,7 @@ const float MELEE_ATTACK_REACH = 0.035f;
 const float SPRAY_PROJECTILE_SPEED = 0.85f;
 const float SPRAY_PROJECTILE_RADIUS = 0.012f;
 
-// Read-only view of an enemy owned by Members 3/4. IDs are nonnegative and stable when
+// Read-only enemy data supplied by Members 3/4. IDs are nonnegative and stay stable when
 // another enemy is erased. The provider skips dead enemies; it owns all HP.
 struct PlayerAttackTarget {
     int id;
@@ -18,8 +18,7 @@ struct PlayerAttackTarget {
     float halfWidth;
 };
 
-// Register once when the enemy module is ready. Re-read live targets for every
-// attack, since damage may erase an enemy. No enemy health is copied here.
+// Re-read live targets for every attack: damage may erase an enemy.
 struct PlayerEnemyAccess {
     int (*getCount)() = nullptr;
     bool (*getTarget)(int index, PlayerAttackTarget& target) = nullptr;

@@ -2,7 +2,7 @@
 #include <glad/gl.h>
 
 void drawExampleScene(
-    GLint transformLOcation,
+    GLint transformLocation,
     GLint colorLocation,
     int circleVertexStart,
     int circleVertexCount,

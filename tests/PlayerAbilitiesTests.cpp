@@ -20,8 +20,13 @@ static void check(bool condition, const char* message)
     }
 }
 
-// Enemy fixtures exist only in this test. Production enemies/HP belong to 3/4.
-struct TestEnemy { int id; int lane; float x; int hp; };
+// The combat callbacks below use these fixtures instead of the live enemy list.
+struct TestEnemy {
+    int id;
+    int lane;
+    float x;
+    int hp;
+};
 static std::vector<TestEnemy> targets;
 static int damageEvents = 0;
 static int targetCount() { return (int)targets.size(); }

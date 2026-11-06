@@ -7,14 +7,13 @@
 #include "UI.h"
 #include <cmath>
 #include <algorithm>
+#include <string>
 
-// player movement and jump/duck settings
 const float PLAYER_SPEED       = 0.14f;
 const float JUMP_DUCK_DURATION = 0.65f;
 const float JUMP_OFFSET_Y      = 0.065f;
 const float DUCK_OFFSET_Y      = -0.045f;
 
-// active players on the lanes
 static std::vector<Player> players;
 
 std::vector<Player>& getPlayers()
@@ -22,7 +21,6 @@ std::vector<Player>& getPlayers()
     return players;
 }
 
-// set color mixed with red based on how much health the player lost
 void setPlayerColor(GLint colorLocation, float r, float g, float b, int hp, int maxHp)
 {
     float lostRatio = 0.0f;
@@ -32,7 +30,6 @@ void setPlayerColor(GLint colorLocation, float r, float g, float b, int hp, int 
     if (lostRatio < 0.0f) lostRatio = 0.0f;
     if (lostRatio > 1.0f) lostRatio = 1.0f;
 
-    // increase red tint as health decreases
     float redAmount = lostRatio * 0.75f;
     float finalR = r + (1.0f - r) * redAmount;
     float finalG = g * (1.0f - redAmount);
@@ -55,11 +52,11 @@ int spawnPlayer(int type, int lane)
     p.y = env.getLaneCenterY(lane) - 0.015f;
 
     if (type == PLAYER_DEFENSE) {
-        p.maxHp = DEFENSE_MAX_HP; // 7 hits
+        p.maxHp = DEFENSE_MAX_HP;
     } else if (type == PLAYER_RANGED) {
-        p.maxHp = RANGED_MAX_HP;  // 5 lives
+        p.maxHp = RANGED_MAX_HP;
     } else {
-        p.maxHp = MELEE_MAX_HP;   // 5 lives
+        p.maxHp = MELEE_MAX_HP;
     }
 
     p.hp = p.maxHp;
@@ -88,7 +85,6 @@ void damagePlayer(int index, int damage)
     playSound(players[index].type == PLAYER_DEFENSE ? SoundId::SheetHit : SoundId::UnitDamage);
     players[index].hp -= damage;
 
-    // remove player from scene when defeated
     if (players[index].hp <= 0) {
         playSound(SoundId::UnitDefeated);
         players.erase(players.begin() + index);
@@ -120,7 +116,6 @@ void updatePlayers(float dt)
     for (Player& player : players) {
         player.animTime += dt;
 
-        // update jump or duck timer
         if (player.pose != POSE_NORMAL) {
             player.poseTimer -= dt;
             if (player.poseTimer <= 0.0f) {
@@ -129,7 +124,6 @@ void updatePlayers(float dt)
             }
         }
 
-        // keep player Y inside its lane plus jump/duck offset
         float baseY = env.getLaneCenterY(player.lane) - 0.015f;
         if (player.pose == POSE_JUMPING) {
             player.y = baseY + JUMP_OFFSET_Y;
@@ -177,7 +171,6 @@ void handlePlayerKeyPress(int key, int action)
             continue;
         }
 
-        // apply jump or duck to every eligible player in all selected lanes
         if (env.isLaneSelected(player.lane)) {
             changed = changed || player.pose != newPose;
             player.pose = newPose;
@@ -190,29 +183,35 @@ void handlePlayerKeyPress(int key, int action)
 void drawPlayers(
     GLint transformLocation,
     GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
-    int triangleVertexStart
+    int,
+    int,
+    int
 ) {
     for (int i = 0; i < (int)players.size(); i++) {
-        const Player& p = players[i];
+        const Player& player = players[i];
 
         // A small green underline marks allies currently protected by a sheet.
-        if (p.type != PLAYER_DEFENSE && getPlayerDamageReceiver(i, getEnvironment().getLaneEndX()) != i) {
+        if (player.type != PLAYER_DEFENSE && getPlayerDamageReceiver(i, getEnvironment().getLaneEndX()) != i) {
             glUniform3f(colorLocation, 0.30f, 0.85f, 0.45f);
-            drawPictureTinted(transformLocation,"ui-fill",p.x,p.y-.105f,.09f,.008f);
+            drawPictureTinted(transformLocation, "ui-fill", player.x, player.y - .105f, .09f, .008f);
         }
 
-        int pose=p.pose==POSE_DUCKING ? POSE_DUCKING : POSE_NORMAL;
-        int frame=p.blockedByEnemy ? 0 : int(p.animTime*8*2/3.14159265f)%4;
-        if(p.attackAnimation>0) frame=4+std::min(3,int((1-p.attackAnimation/PLAYER_ATTACK_ANIMATION_TIME)*4));
-        if(p.type==PLAYER_DEFENSE) {pose=POSE_NORMAL;frame=0;}
-        float damage=1.0f-float(p.hp)/p.maxHp;
-        drawCharacterImage(transformLocation,colorLocation,
-            "player-"+std::to_string(p.type)+"-"+std::to_string(pose)+"-"+std::to_string(frame),p.x,p.y,damage);
+        int pose = player.pose == POSE_DUCKING ? POSE_DUCKING : POSE_NORMAL;
+        int frame = player.blockedByEnemy ? 0 : int(player.animTime * 8 * 2 / 3.14159265f) % 4;
+        if (player.attackAnimation > 0) {
+            frame = 4 + std::min(3, int((1 - player.attackAnimation / PLAYER_ATTACK_ANIMATION_TIME) * 4));
+        }
+        if (player.type == PLAYER_DEFENSE) {
+            pose = POSE_NORMAL;
+            frame = 0;
+        }
 
-        // draw health bar above the player
-        drawHealthBar(transformLocation, colorLocation, p.x, p.y + 0.105f, p.hp, p.maxHp);
+        float damage = 1.0f - float(player.hp) / player.maxHp;
+        std::string image = "player-" + std::to_string(player.type) + "-" +
+                            std::to_string(pose) + "-" + std::to_string(frame);
+        drawCharacterImage(transformLocation, colorLocation, image, player.x, player.y, damage);
+
+        drawHealthBar(transformLocation, colorLocation, player.x, player.y + 0.105f, player.hp, player.maxHp);
     }
 }
 

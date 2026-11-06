@@ -19,7 +19,10 @@ static bool testMouseToWorld(GLFWwindow*, const glm::mat4&, glm::vec2& world)
 
 static void check(bool condition, const char* message)
 {
-    if (!condition) { std::cerr << "FAILED: " << message << '\n'; std::exit(1); }
+    if (!condition) {
+        std::cerr << "FAILED: " << message << '\n';
+        std::exit(1);
+    }
 }
 
 int main(int argc, char** argv)
@@ -34,11 +37,13 @@ int main(int argc, char** argv)
     glfwMakeContextCurrent(window);
     check(gladLoadGL(glfwGetProcAddress) != 0, "GLAD initialization");
     std::cout << "GPU: " << glGetString(GL_RENDERER) << "; OpenGL: " << glGetString(GL_VERSION) << '\n';
-    GLuint vs = compileShader(GL_VERTEX_SHADER, vertexShaderSrc);
-    GLuint fs = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSrc);
-    check(vs != 0 && fs != 0, "production shaders compile");
+    GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSrc);
+    GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSrc);
+    check(vertexShader != 0 && fragmentShader != 0, "production shaders compile");
     GLuint program = glCreateProgram();
-    glAttachShader(program, vs); glAttachShader(program, fs); glLinkProgram(program);
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+    glLinkProgram(program);
     GLint linked;
     glGetProgramiv(program, GL_LINK_STATUS, &linked);
     check(linked != 0, "production shaders link");
@@ -58,14 +63,16 @@ int main(int argc, char** argv)
     int triangleStart = (int)vertices.size() / 3;
     vertices.insert(vertices.end(), {-0.5f,-0.5f,0, 0.5f,-0.5f,0, 0,0.5f,0});
     GLuint vao, vbo;
-    glGenVertexArrays(1, &vao); glBindVertexArray(vao);
-    glGenBuffers(1, &vbo); glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
-    GLint t = glGetUniformLocation(program, "u_Transform");
-    GLint c = glGetUniformLocation(program, "uColor");
-    GLint p = glGetUniformLocation(program, "u_Projection");
+    GLint transformLocation = glGetUniformLocation(program, "u_Transform");
+    GLint colorLocation = glGetUniformLocation(program, "uColor");
+    GLint projectionLocation = glGetUniformLocation(program, "u_Projection");
     int width = 0, height = 0, frames = 0;
     std::string output = argc > 1 ? argv[1] : "";
     if (!output.empty()) std::filesystem::create_directories(output);
@@ -78,27 +85,27 @@ int main(int argc, char** argv)
     auto render = [&](const std::string& name) {
         glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        glUniformMatrix4fv(p, 1, GL_FALSE, glm::value_ptr(projection));
-        drawKitchenBackground(t, c, projection);
-        drawKitchenDecorations(t, c, projection);
+        glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
+        drawKitchenBackground(transformLocation, colorLocation, projection);
+        drawKitchenDecorations(transformLocation, colorLocation, projection);
         int state = getGameState();
-        if (state == STATE_MAIN_MENU) drawUI(t, c, circleStart, circleCount, triangleStart, testMouse.x, testMouse.y);
+        if (state == STATE_MAIN_MENU) drawUI(transformLocation, colorLocation, circleStart, circleCount, triangleStart, testMouse.x, testMouse.y);
         else if (state == STATE_CUTSCENE) {
-            drawCutscene(t, c, circleStart, circleCount, triangleStart);
-            drawCutsceneSkipButton(t, c, testMouse.x, testMouse.y);
+            drawCutscene(transformLocation, colorLocation, circleStart, circleCount, triangleStart);
+            drawCutsceneSkipButton(transformLocation, colorLocation, testMouse.x, testMouse.y);
         }
         else {
-            getEnvironment().render(t, c, circleStart, circleCount, triangleStart);
-            drawEnemies(t, c, circleStart, circleCount, triangleStart);
-            drawPlayers(t, c, circleStart, circleCount, triangleStart);
-            drawPlayerCombat(t, c, circleStart, circleCount);
-            drawCollectibles(t, c, circleStart, circleCount);
+            getEnvironment().render(transformLocation, colorLocation, circleStart, circleCount, triangleStart);
+            drawEnemies(transformLocation, colorLocation, circleStart, circleCount, triangleStart);
+            drawPlayers(transformLocation, colorLocation, circleStart, circleCount, triangleStart);
+            drawPlayerCombat(transformLocation, colorLocation, circleStart, circleCount);
+            drawCollectibles(transformLocation, colorLocation, circleStart, circleCount);
             if (state == STATE_PLAYING || state == STATE_PAUSED)
-                drawHUD(t, c, circleStart, circleCount, triangleStart, state==STATE_PLAYING ? testMouse.x : -99, state==STATE_PLAYING ? testMouse.y : -99);
-            if (state == STATE_PLAYING) drawWaveStatus(t, c);
-            if (state == STATE_PAUSED) drawPauseMenu(t, c, testMouse.x, testMouse.y);
+                drawHUD(transformLocation, colorLocation, circleStart, circleCount, triangleStart, state==STATE_PLAYING ? testMouse.x : -99, state==STATE_PLAYING ? testMouse.y : -99);
+            if (state == STATE_PLAYING) drawWaveStatus(transformLocation, colorLocation);
+            if (state == STATE_PAUSED) drawPauseMenu(transformLocation, colorLocation, testMouse.x, testMouse.y);
             if (state == STATE_WON || state == STATE_LOST)
-                drawWinLoseMenu(t, c, circleStart, circleCount, triangleStart, state == STATE_WON, testMouse.x, testMouse.y);
+                drawWinLoseMenu(transformLocation, colorLocation, circleStart, circleCount, triangleStart, state == STATE_WON, testMouse.x, testMouse.y);
         }
         glFinish();
         check(glGetError() == GL_NO_ERROR, "draw calls have no OpenGL errors");
@@ -131,7 +138,8 @@ int main(int argc, char** argv)
         glfwPollEvents();
         glfwGetFramebufferSize(window, &width, &height);
         framebufferSizeCallback(window, width, height);
-        GLint viewport[4]; glGetIntegerv(GL_VIEWPORT, viewport);
+        GLint viewport[4];
+        glGetIntegerv(GL_VIEWPORT, viewport);
         check(viewport[2] == width && viewport[3] == height, "resize updates the framebuffer viewport");
         Environment& environment = getEnvironment();
         float halfWidth = 1.0f / projection[0][0];
@@ -143,13 +151,13 @@ int main(int argc, char** argv)
               "extended lane area remains clickable");
         // Verify that all five separate images contribute visible pixels over
         // the plain background and stay below the playable lanes.
-        glUniformMatrix4fv(p, 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
         glClear(GL_COLOR_BUFFER_BIT);
-        drawKitchenBackground(t, c, projection);
+        drawKitchenBackground(transformLocation, colorLocation, projection);
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         std::vector<unsigned char> background(width * height * 3);
         glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, background.data());
-        drawKitchenDecorations(t, c, projection);
+        drawKitchenDecorations(transformLocation, colorLocation, projection);
         std::vector<unsigned char> decorated(width * height * 3);
         glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, decorated.data());
         int changedPixels[5] = {};
@@ -266,7 +274,10 @@ int main(int argc, char** argv)
         getEnemies().back().attackAnimation=0.12f;
     }
     render("all-character-images");
-    for(Player& player : getPlayers()) { player.hp-=2; if(player.type!=PLAYER_DEFENSE) player.pose=POSE_DUCKING; }
+    for (Player& player : getPlayers()) {
+        player.hp -= 2;
+        if (player.type != PLAYER_DEFENSE) player.pose = POSE_DUCKING;
+    }
     for(Enemy& enemy : getEnemies()) enemy.hp-=2;
     render("duck-character-images");
     returnToMainMenu();
@@ -279,7 +290,11 @@ int main(int argc, char** argv)
     check(glfwWindowShouldClose(window), "Exit button closes the actual GLFW window");
     std::cout << frames << " frames passed across seven sizes: kitchen coverage, shaders, rendering, callbacks, pause and reset.\n";
     releaseKitchenBackground();
-    glDeleteBuffers(1, &vbo); glDeleteVertexArrays(1, &vao);
-    glDeleteShader(vs); glDeleteShader(fs); glDeleteProgram(program);
-    glfwDestroyWindow(window); glfwTerminate();
+    glDeleteBuffers(1, &vbo);
+    glDeleteVertexArrays(1, &vao);
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+    glDeleteProgram(program);
+    glfwDestroyWindow(window);
+    glfwTerminate();
 }

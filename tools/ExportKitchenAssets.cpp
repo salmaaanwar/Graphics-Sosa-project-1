@@ -1,5 +1,4 @@
-// Offline exporter: the same solid-color shapes used by Player.cpp and UI.cpp.
-// The running game loads separate PNGs and never calls these modeling functions.
+// Source artwork for the PNG exporter. The game loads the resulting images.
 #include "Renderer.h"
 #include "UI.h"
 #include "Player.h"
@@ -443,7 +442,7 @@ static void pot()
 {
     color(0.22f, 0.30f, 0.32f); rect(0, -0.12f, 1.16f, 1.00f);
     color(0.52f, 0.58f, 0.61f); rect(0, -0.10f, 1.06f, 0.90f);
-    // Three bars per handle keep the centers genuinely transparent.
+    // Leave the handle centers transparent by drawing only their edges.
     for (float side : {-1.0f, 1.0f}) {
         color(0.22f, 0.30f, 0.32f);
         rect(side * 0.68f, 0.13f, 0.26f, 0.07f);
@@ -553,7 +552,10 @@ static GLuint shader(GLenum type, const char* source)
     glCompileShader(result);
     GLint compiled;
     glGetShaderiv(result, GL_COMPILE_STATUS, &compiled);
-    if (!compiled) { std::cerr << "Exporter shader failed\n"; std::exit(1); }
+    if (!compiled) {
+        std::cerr << "Exporter shader failed\n";
+        std::exit(1);
+    }
     return result;
 }
 
@@ -566,15 +568,34 @@ int main(int argc, char** argv)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
     GLFWwindow* window = glfwCreateWindow(64, 64, "Kitchen image export", nullptr, nullptr);
-    if (!window) { glfwTerminate(); return 1; }
+    if (!window) {
+        glfwTerminate();
+        return 1;
+    }
     glfwMakeContextCurrent(window);
     if (!gladLoadGL(glfwGetProcAddress)) return 1;
 
-    GLuint vs = shader(GL_VERTEX_SHADER, "#version 330 core\nlayout(location=0) in vec3 p; uniform mat4 u_Transform; uniform mat4 u_Projection; void main(){gl_Position=u_Projection*u_Transform*vec4(p,1);}");
-    GLuint fs = shader(GL_FRAGMENT_SHADER, "#version 330 core\nout vec4 result; uniform vec3 uColor; void main(){result=vec4(uColor,1);}");
+    GLuint vertexShader = shader(GL_VERTEX_SHADER, R"(#version 330 core
+layout(location = 0) in vec3 p;
+uniform mat4 u_Transform;
+uniform mat4 u_Projection;
+void main() {
+    gl_Position = u_Projection * u_Transform * vec4(p, 1);
+}
+)");
+    GLuint fragmentShader = shader(GL_FRAGMENT_SHADER, R"(#version 330 core
+out vec4 result;
+uniform vec3 uColor;
+void main() {
+    result = vec4(uColor, 1);
+}
+)");
     GLuint program = glCreateProgram();
-    glAttachShader(program, vs); glAttachShader(program, fs); glLinkProgram(program);
-    GLint linked; glGetProgramiv(program, GL_LINK_STATUS, &linked);
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+    glLinkProgram(program);
+    GLint linked;
+    glGetProgramiv(program, GL_LINK_STATUS, &linked);
     if (!linked) return 1;
     glUseProgram(program);
     transformLocation = glGetUniformLocation(program, "u_Transform");
@@ -591,14 +612,18 @@ int main(int argc, char** argv)
     }
     vertices.insert(vertices.end(), {-.5f,-.5f,0, .5f,-.5f,0, 0,.5f,0});
     GLuint vao, vbo, framebuffer, texture;
-    glGenVertexArrays(1, &vao); glBindVertexArray(vao);
-    glGenBuffers(1, &vbo); glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
-    glGenTextures(1, &texture); glBindTexture(GL_TEXTURE_2D, texture);
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glGenFramebuffers(1, &framebuffer); glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) return 1;
     glViewport(0, 0, 512, 512);
@@ -606,7 +631,10 @@ int main(int argc, char** argv)
     stbi_flip_vertically_on_write(true);
     std::filesystem::path output = argc > 1 ? argv[1] : GAME_ASSET_DIR;
     std::filesystem::create_directories(output);
-    struct Asset { const char* filename; void (*draw)(); };
+    struct Asset {
+        const char* filename;
+        void (*draw)();
+    };
     for (const Asset& asset : {Asset{"kitchen-pot.png", pot}, {"kitchen-herb.png", herb},
                               {"kitchen-jar.png", jar}, {"kitchen-toaster.png", toaster}, {"kitchen-mug.png", mug},
                               {"food-plate.png", plate}, {"food-bread.png", bread},
@@ -767,8 +795,13 @@ int main(int argc, char** argv)
         color(.16f,.20f,.28f);rect(0,0,1.93f,.30f);
         color(1,.92f,.30f);centered("WAVE "+std::to_string(wave)+" STARTING",0,.018f);
     });
-    glDeleteFramebuffers(1, &framebuffer); glDeleteTextures(1, &texture);
-    glDeleteBuffers(1, &vbo); glDeleteVertexArrays(1, &vao);
-    glDeleteShader(vs); glDeleteShader(fs); glDeleteProgram(program);
-    glfwDestroyWindow(window); glfwTerminate();
+    glDeleteFramebuffers(1, &framebuffer);
+    glDeleteTextures(1, &texture);
+    glDeleteBuffers(1, &vbo);
+    glDeleteVertexArrays(1, &vao);
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+    glDeleteProgram(program);
+    glfwDestroyWindow(window);
+    glfwTerminate();
 }

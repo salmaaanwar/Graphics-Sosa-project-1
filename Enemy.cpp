@@ -1,6 +1,7 @@
 #include "Audio.h"
 #include "Enemy.h"
 #include <algorithm>
+#include <string>
 #include "Environment.h"
 #include "Game.h"
 #include "Renderer.h"
@@ -115,7 +116,6 @@ void damageEnemy(int enemyId, int amount)
     damageEnemyById(enemyId, amount);
 }
 
-// move bullets and check player hits
 void updateEnemyProjectiles(float dt)
 {
     for (int i = (int)enemyProjectiles.size() - 1; i >= 0; i--)
@@ -135,7 +135,7 @@ void updateEnemyProjectiles(float dt)
                 continue;
             }
 
-            // check defense protection before checking dodging
+            // A sheet takes the hit even when the ally behind it could dodge.
             int receiver = getPlayerDamageReceiver(j, oldX);
 
             if (receiver < 0)
@@ -177,7 +177,6 @@ void updateEnemyProjectiles(float dt)
     }
 }
 
-// move enemies toward the home base
 void updateEnemies(float dt)
 {
     if (dt <= 0.0f)
@@ -200,7 +199,6 @@ void updateEnemies(float dt)
     {
         enemy.blockedByPlayer = false;
 
-        // check players in the same lane
         for (int j = 0; j < (int)players.size(); j++)
         {
             if (enemy.lane == players[j].lane)
@@ -240,7 +238,6 @@ void updateEnemies(float dt)
             return;
         }
 
-        // count down the attack animation
         enemy.attackAnimation -= dt;
 
         if (enemy.attackAnimation < 0.0f)
@@ -320,25 +317,26 @@ void updateEnemies(float dt)
 void drawEnemies(
     GLint transformLocation,
     GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
-    int triangleVertexStart)
+    int,
+    int,
+    int)
 {
     for (const Enemy& enemy : enemies)
     {
         drawHealthBar(transformLocation, colorLocation, enemy.x, enemy.y + 0.12f, enemy.hp, enemy.maxHp);
         float redness = 1.0f - (float)enemy.hp / enemy.maxHp;
-        int frame=enemy.attackAnimation>0 ? 1+std::min(3,int(enemy.attackAnimation/.20f*4)) : 0;
-        drawCharacterImage(transformLocation,colorLocation,
-            "enemy-"+std::to_string(enemy.type)+"-"+std::to_string(frame),enemy.x,enemy.y,redness);
-
+        int frame = enemy.attackAnimation > 0
+            ? 1 + std::min(3, int(enemy.attackAnimation / .20f * 4))
+            : 0;
+        std::string image = "enemy-" + std::to_string(enemy.type) + "-" + std::to_string(frame);
+        drawCharacterImage(transformLocation, colorLocation, image, enemy.x, enemy.y, redness);
     }
 
     for (const EnemyProjectile& projectile : enemyProjectiles)
     {
-        drawIntroImage(transformLocation,colorLocation,
-                       "projectile-enemy-"+std::to_string(projectile.type==ENEMY_EASY ? 0 : 1),
-                       projectile.x,projectile.y,.10f,.10f);
+        int imageType = projectile.type == ENEMY_EASY ? 0 : 1;
+        drawIntroImage(transformLocation, colorLocation, "projectile-enemy-" + std::to_string(imageType),
+                       projectile.x, projectile.y, .10f, .10f);
     }
 }
 
@@ -347,7 +345,6 @@ int countEnemies()
     return (int)enemies.size();
 }
 
-// provide one enemy's current position for player attacks
 bool readEnemyTarget(int index, PlayerAttackTarget &target)
 {
     if (index < 0 || index >= (int)enemies.size())

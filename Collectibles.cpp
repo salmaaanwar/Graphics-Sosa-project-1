@@ -50,10 +50,10 @@ void updateCollectibles()
 }
 
 void drawCollectibles(GLint transformLocation, GLint colorLocation,
-                      int circleStart, int circleCount)
+                      int, int)
 {
     for (const CollectibleDrop& drop : drops)
     {
-        drawIntroImage(transformLocation,colorLocation,"icon-coin-0",drop.x,drop.y,.0625f,.0625f);
+        drawIntroImage(transformLocation, colorLocation, "icon-coin-0", drop.x, drop.y, .0625f, .0625f);
     }
 }

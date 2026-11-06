@@ -18,7 +18,6 @@ enum FoodPicture { FOOD_BREAD, FOOD_APPLE, FOOD_CHEESE, FOOD_PICTURE_COUNT };
 void drawFoodPlate(GLint transformLocation, GLint colorLocation, FoodPicture food,
                    float x, float y, float size = 0.235f);
 
-//triangle drawing
 void drawTriangle(
     GLint transformLocation,
     int firstVertex,
@@ -29,7 +28,6 @@ void drawTriangle(
     float angleDegrees = 0.0f
 );
 
-//rectangle drawing
 void drawRectangle(
     GLint transformLocation,
     float x,
@@ -39,7 +37,6 @@ void drawRectangle(
     float angleDegrees = 0.0f
 );
 
-//circle drawing
 void drawCircle(
     GLint transformLocation,
     int firstVertex, 
@@ -49,7 +46,7 @@ void drawCircle(
     float radius
 );
 
-//mouse-to-world conversion
+// Returns false when a minimized window has no usable content size.
 bool mouseToWorld(
     GLFWwindow* window,
     const glm::mat4& projection,

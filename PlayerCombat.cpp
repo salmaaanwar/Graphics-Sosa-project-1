@@ -13,7 +13,9 @@ static std::vector<PlayerProjectile> projectiles;
 
 void resizePlayerProjectiles(float scale, float offset)
 {
-    for (PlayerProjectile& shot : projectiles) shot.x = shot.x * scale + offset;
+    for (PlayerProjectile& shot : projectiles) {
+        shot.x = shot.x * scale + offset;
+    }
 }
 
 void connectPlayerCombatToEnemies(PlayerEnemyAccess access)
@@ -171,9 +173,9 @@ void resetPlayerCombat()
     }
 }
 
-void drawPlayerCombat(GLint t, GLint c, int firstCircle, int circleCount)
+void drawPlayerCombat(GLint transformLocation, GLint colorLocation, int, int)
 {
     for (const PlayerProjectile& shot : projectiles) {
-        drawIntroImage(t,c,"projectile-spray",shot.x,shot.y,.10f,.10f);
+        drawIntroImage(transformLocation, colorLocation, "projectile-spray", shot.x, shot.y, .10f, .10f);
     }
 }

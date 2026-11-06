@@ -34,7 +34,6 @@ static const float SKIP_BUTTON_Y = 0.86f;
 static const float SKIP_BUTTON_WIDTH = 0.28f;
 static const float SKIP_BUTTON_HEIGHT = 0.14f;
 
-// check if point (px, py) is inside rectangle centered at (rx, ry)
 bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh)
 {
     float halfW = rw * 0.5f;
@@ -43,7 +42,6 @@ bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh)
             py >= ry - halfH && py <= ry + halfH);
 }
 
-// draw text centered around (centerX, centerY)
 void drawCenteredText(
     GLint transformLocation,
     const std::string& text,
@@ -61,7 +59,6 @@ void drawCenteredText(
     drawText(transformLocation, text, startX, startY, cellSize);
 }
 
-// set normal color or grayscale color if locked
 void setUIColor(GLint colorLocation, float r, float g, float b, float gray, bool grayscale)
 {
     if (grayscale) {
@@ -76,89 +73,88 @@ static void drawMenuButton(GLint transformLocation, GLint colorLocation,
                            float x, float y, float width, float height,
                            const std::string& label, bool isHovered)
 {
-    std::string key=label;
-    std::replace(key.begin(),key.end(),' ','_');
-    drawIntroImage(transformLocation,colorLocation,"button-"+key+(isHovered ? "-1" : "-0"),x,y,width,height);
+    std::string assetName = label;
+    std::replace(assetName.begin(), assetName.end(), ' ', '_');
+    assetName = "button-" + assetName + (isHovered ? "-1" : "-0");
+    drawIntroImage(transformLocation, colorLocation, assetName, x, y, width, height);
 }
 
-// collectible coin icon
 void drawCollectibleIcon(
     GLint transformLocation,
     GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
+    int,
+    int,
     float x,
     float y,
     float scale,
     bool grayscale
 ) {
-    float size=2*scale/.8f;
-    drawIntroImage(transformLocation,colorLocation,"icon-coin-"+std::to_string(grayscale ? 1 : 0),x,y,size,size);
+    float size = 2 * scale / .8f;
+    drawIntroImage(transformLocation, colorLocation,
+                  "icon-coin-" + std::to_string(grayscale ? 1 : 0), x, y, size, size);
 }
 
-// melee fly swatter icon
 void drawSwatterIcon(
     GLint transformLocation,
     GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
-    int triangleVertexStart,
+    int,
+    int,
+    int,
     float x,
     float y,
     float scale,
     bool grayscale
 ) {
-    float size=2*scale/.65f;
-    drawIntroImage(transformLocation,colorLocation,"icon-swatter-"+std::to_string(grayscale ? 1 : 0),x,y,size,size);
+    float size = 2 * scale / .65f;
+    drawIntroImage(transformLocation, colorLocation,
+                  "icon-swatter-" + std::to_string(grayscale ? 1 : 0), x, y, size, size);
 }
 
-// long range spray bottle icon
 void drawSprayBottleIcon(
     GLint transformLocation,
     GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
-    int triangleVertexStart,
+    int,
+    int,
+    int,
     float x,
     float y,
     float scale,
     bool grayscale
 ) {
-    float size=2*scale/.65f;
-    drawIntroImage(transformLocation,colorLocation,"icon-spray-"+std::to_string(grayscale ? 1 : 0),x,y,size,size);
+    float size = 2 * scale / .65f;
+    drawIntroImage(transformLocation, colorLocation,
+                  "icon-spray-" + std::to_string(grayscale ? 1 : 0), x, y, size, size);
 }
 
-// defense sticky sheet icon
 void drawStickySheetIcon(
     GLint transformLocation,
     GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
+    int,
+    int,
     float x,
     float y,
     float scale,
     bool grayscale
 ) {
-    float size=2*scale/.65f;
-    drawIntroImage(transformLocation,colorLocation,"icon-sticky-"+std::to_string(grayscale ? 1 : 0),x,y,size,size);
+    float size = 2 * scale / .65f;
+    drawIntroImage(transformLocation, colorLocation,
+                  "icon-sticky-" + std::to_string(grayscale ? 1 : 0), x, y, size, size);
 }
 
-// insect icon for menus
 void drawMenuInsect(
     GLint transformLocation,
     GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
-    int triangleVertexStart,
+    int,
+    int,
+    int,
     float x,
     float y,
     float scale
 ) {
-    float size=2*scale/.65f;
-    drawIntroImage(transformLocation,colorLocation,"icon-insect",x,y,size,size);
+    float size = 2 * scale / .65f;
+    drawIntroImage(transformLocation, colorLocation, "icon-insect", x, y, size, size);
 }
 
-// health bar drawing
 void drawHealthBar(
     GLint transformLocation,
     GLint colorLocation,
@@ -171,9 +167,7 @@ void drawHealthBar(
         return;
     }
 
-    int clampedHP = currentHP;
-    if (clampedHP < 0) clampedHP = 0;
-    if (clampedHP > maxHP) clampedHP = maxHP;
+    int clampedHP = std::clamp(currentHP, 0, maxHP);
 
     float barWidth = 0.18f;
     float barHeight = 0.032f;
@@ -216,9 +210,10 @@ void drawHUD(
     float mouseX,
     float mouseY
 ) {
-    float top=getEnvironment().getViewHalfHeight();
-    float screenWidth=getEnvironment().getViewHalfWidth()*2;
-    drawIntroImage(transformLocation,colorLocation,"hud-bar",0,(top+.68f)*.5f,screenWidth,top-.68f);
+    float top = getEnvironment().getViewHalfHeight();
+    float screenWidth = getEnvironment().getViewHalfWidth() * 2;
+    drawIntroImage(transformLocation, colorLocation, "hud-bar",
+                  0, (top + .68f) * .5f, screenWidth, top - .68f);
 
     // 3 player cards on the left
     const int costs[3] = { MELEE_COST, RANGED_COST, DEFENSE_COST };
@@ -238,9 +233,12 @@ void drawHUD(
 
         bool isSelected = (unlocked && getSelectedCard() == i);
 
-        int cardState=!unlocked ? 1 : isSelected ? 3 : hovered ? 2 : 0;
-        drawIntroImage(transformLocation,colorLocation,"hud-card-"+std::to_string(cardState),
-                       cardCentersX[i],cardCenterY,cardW,cardH);
+        int cardState = 0;
+        if (!unlocked) cardState = 1;
+        else if (isSelected) cardState = 3;
+        else if (hovered) cardState = 2;
+        drawIntroImage(transformLocation, colorLocation, "hud-card-" + std::to_string(cardState),
+                       cardCentersX[i], cardCenterY, cardW, cardH);
 
         // card name
         setUIColor(colorLocation, 1.0f, 1.0f, 1.0f, 0.55f, !unlocked);
@@ -284,7 +282,7 @@ void drawHUD(
     float coinBoxW = 0.44f;
     float coinBoxH = 0.18f;
 
-    drawIntroImage(transformLocation,colorLocation,"hud-coins",coinBoxX,coinBoxY,coinBoxW,coinBoxH);
+    drawIntroImage(transformLocation, colorLocation, "hud-coins", coinBoxX, coinBoxY, coinBoxW, coinBoxH);
 
     drawCollectibleIcon(transformLocation, colorLocation, circleVertexStart, circleVertexCount,
                         coinBoxX - 0.13f, coinBoxY, 0.055f, false);
@@ -308,13 +306,13 @@ void drawHUD(
 void drawMainMenu(
     GLint transformLocation,
     GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
-    int triangleVertexStart,
+    int,
+    int,
+    int,
     float mouseX,
     float mouseY
 ) {
-    drawIntroImage(transformLocation,colorLocation,"menu-main",0,0,2,2);
+    drawIntroImage(transformLocation, colorLocation, "menu-main", 0, 0, 2, 2);
     drawAudioControls(transformLocation, colorLocation);
     // start and exit buttons
     float btnW = 0.68f, btnH = 0.20f;
@@ -329,8 +327,8 @@ void drawCutsceneSkipButton(GLint transformLocation, GLint colorLocation, float 
 {
     bool hovered = isPointInRect(mouseX, mouseY, SKIP_BUTTON_X, SKIP_BUTTON_Y,
                                  SKIP_BUTTON_WIDTH, SKIP_BUTTON_HEIGHT);
-    drawIntroImage(transformLocation,colorLocation,hovered ? "intro-skip-1" : "intro-skip-0",
-                   SKIP_BUTTON_X,SKIP_BUTTON_Y,SKIP_BUTTON_WIDTH,SKIP_BUTTON_HEIGHT);
+    drawIntroImage(transformLocation, colorLocation, hovered ? "intro-skip-1" : "intro-skip-0",
+                   SKIP_BUTTON_X, SKIP_BUTTON_Y, SKIP_BUTTON_WIDTH, SKIP_BUTTON_HEIGHT);
 }
 
 // pause menu drawing
@@ -340,7 +338,7 @@ void drawPauseMenu(
     float mouseX,
     float mouseY
 ) {
-    drawIntroImage(transformLocation,colorLocation,"menu-pause",0,0,2,2);
+    drawIntroImage(transformLocation, colorLocation, "menu-pause", 0, 0, 2, 2);
     drawAudioControls(transformLocation, colorLocation);
     float btnW = 0.78f;
     float btnH = 0.17f;
@@ -359,14 +357,14 @@ void drawPauseMenu(
 void drawWinLoseMenu(
     GLint transformLocation,
     GLint colorLocation,
-    int circleVertexStart,
-    int circleVertexCount,
-    int triangleVertexStart,
+    int,
+    int,
+    int,
     bool isWin,
     float mouseX,
     float mouseY
 ) {
-    drawIntroImage(transformLocation,colorLocation,isWin ? "menu-win" : "menu-lose",0,0,2,2);
+    drawIntroImage(transformLocation, colorLocation, isWin ? "menu-win" : "menu-lose", 0, 0, 2, 2);
     float btnW = 0.78f;
     float btnH = 0.18f;
 

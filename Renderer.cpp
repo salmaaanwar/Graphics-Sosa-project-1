@@ -11,7 +11,7 @@
 #include "external/stb_image.h"
 
 static GLuint kitchenTexture = 0;
-static std::map<std::string, GLuint> introPictures;
+static std::map<std::string, GLuint> pictureTextures;
 static GLuint plateTexture = 0;
 static GLuint foodTextures[FOOD_PICTURE_COUNT] = {};
 static const char* foodFiles[FOOD_PICTURE_COUNT] = {
@@ -21,14 +21,13 @@ static const char* foodFiles[FOOD_PICTURE_COUNT] = {
 struct KitchenDecoration {
     const char* filename;
     float position;  // Horizontal fraction of the window.
-    float height;    // World units; characters keep their existing sizes.
+    float height;    // World units.
     GLuint texture = 0;
     int pixelWidth = 0;
     int pixelHeight = 0;
     float bottomPadding = 0.0f;
 };
 
-// Each decoration is its own PNG, texture and independently positioned draw call.
 static KitchenDecoration decorations[] = {
     {"kitchen-pot.png",     0.10f, 0.22f},
     {"kitchen-herb.png",    0.30f, 0.23f},
@@ -49,8 +48,7 @@ static GLuint loadKitchenTexture(const char* filename, int& width, int& height,
         return 0;
     }
 
-    // Transparent padding varies between PNGs. Locate the object's feet/base
-    // so each separate decoration can rest on the same shelf.
+    // Ignore transparent padding when aligning decorations to the shelf.
     if (bottomPadding) {
         int bottom = height - 1;
         bool found = false;
@@ -110,52 +108,80 @@ bool loadKitchenBackground()
             return false;
         }
     }
-    auto loadIntro = [&](const std::string& name) {
-        std::string filename=std::string(GAME_ASSET_DIR)+"/"+name+".png";
-        GLuint image=loadKitchenTexture(filename.c_str(),width,height);
-        if(image==0) return false;
-        introPictures[name]=image;
+    auto loadPicture = [&](const std::string& name) {
+        std::string filename = std::string(GAME_ASSET_DIR) + "/" + name + ".png";
+        GLuint texture = loadKitchenTexture(filename.c_str(), width, height);
+        if (texture == 0) {
+            releaseKitchenBackground();
+            return false;
+        }
+        pictureTextures[name] = texture;
         return true;
     };
-    for (const auto& group : {std::make_pair("intro-swatter-",8), {"intro-fly-",4},
-                              {"intro-heading-",5}, {"intro-dialogue-",5}, {"intro-skip-",2}})
-        for(int frame=0;frame<group.second;++frame)
-            if(!loadIntro(std::string(group.first)+std::to_string(frame))) { releaseKitchenBackground(); return false; }
-    for(const char* name : {"intro-steam","intro-flash","intro-progress"})
-        if(!loadIntro(name)) { releaseKitchenBackground(); return false; }
-    for(int type=0;type<3;++type) for(int pose : {0,2}) {
-        if(type==2 && pose!=0) continue;
-        for(int frame=0;frame<(type==2 ? 1 : 8);++frame)
-            if(!loadIntro("player-"+std::to_string(type)+"-"+std::to_string(pose)+"-"+std::to_string(frame))) {releaseKitchenBackground();return false;}
+    for (const auto& group : {std::make_pair("intro-swatter-", 8), {"intro-fly-", 4},
+                              {"intro-heading-", 5}, {"intro-dialogue-", 5}, {"intro-skip-", 2}}) {
+        for (int frame = 0; frame < group.second; ++frame) {
+            if (!loadPicture(std::string(group.first) + std::to_string(frame))) return false;
+        }
     }
-    for(int type=0;type<3;++type) for(int frame=0;frame<5;++frame)
-        if(!loadIntro("enemy-"+std::to_string(type)+"-"+std::to_string(frame))) {releaseKitchenBackground();return false;}
-    for(const char* name : {"projectile-spray","projectile-enemy-0","projectile-enemy-1"})
-        if(!loadIntro(name)) {releaseKitchenBackground();return false;}
-    if(!loadIntro("font")) {releaseKitchenBackground();return false;}
-    glBindTexture(GL_TEXTURE_2D,introPictures["font"]);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-    for(const char* name : {"menu-main","menu-pause","menu-win","menu-lose"})
-        if(!loadIntro(name)) {releaseKitchenBackground();return false;}
-    for(const char* key : {"START_GAME","EXIT_GAME","CONTINUE","RESTART","MAIN_MENU","PAUSE"})
-        for(int hover=0;hover<2;++hover)
-            if(!loadIntro(std::string("button-")+key+"-"+std::to_string(hover))) {releaseKitchenBackground();return false;}
-    for(const char* name : {"ui-fill","hud-bar","hud-coins","icon-insect"})
-        if(!loadIntro(name)) {releaseKitchenBackground();return false;}
-    for(int state=0;state<4;++state)
-        if(!loadIntro("hud-card-"+std::to_string(state))) {releaseKitchenBackground();return false;}
-    for(const char* icon : {"coin","swatter","spray","sticky"}) for(int gray=0;gray<2;++gray)
-        if(!loadIntro(std::string("icon-")+icon+"-"+std::to_string(gray))) {releaseKitchenBackground();return false;}
-    for(int wave=1;wave<=3;++wave)
-        if(!loadIntro("wave-"+std::to_string(wave))) {releaseKitchenBackground();return false;}
+    for (const char* name : {"intro-steam", "intro-flash", "intro-progress"}) {
+        if (!loadPicture(name)) return false;
+    }
+    for (int type = 0; type < 3; ++type) {
+        for (int pose : {0, 2}) {
+            // The sticky sheet has one static image.
+            if (type == 2 && pose != 0) continue;
+            int frameCount = type == 2 ? 1 : 8;
+            for (int frame = 0; frame < frameCount; ++frame) {
+                std::string name = "player-" + std::to_string(type) + "-"
+                                 + std::to_string(pose) + "-" + std::to_string(frame);
+                if (!loadPicture(name)) return false;
+            }
+        }
+    }
+    for (int type = 0; type < 3; ++type) {
+        for (int frame = 0; frame < 5; ++frame) {
+            if (!loadPicture("enemy-" + std::to_string(type) + "-" + std::to_string(frame))) return false;
+        }
+    }
+    for (const char* name : {"projectile-spray", "projectile-enemy-0", "projectile-enemy-1"}) {
+        if (!loadPicture(name)) return false;
+    }
+    if (!loadPicture("font")) return false;
+    glBindTexture(GL_TEXTURE_2D, pictureTextures["font"]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    for (const char* name : {"menu-main", "menu-pause", "menu-win", "menu-lose"}) {
+        if (!loadPicture(name)) return false;
+    }
+    for (const char* label : {"START_GAME", "EXIT_GAME", "CONTINUE", "RESTART", "MAIN_MENU", "PAUSE"}) {
+        for (int hover = 0; hover < 2; ++hover) {
+            if (!loadPicture(std::string("button-") + label + "-" + std::to_string(hover))) return false;
+        }
+    }
+    for (const char* name : {"ui-fill", "hud-bar", "hud-coins", "icon-insect"}) {
+        if (!loadPicture(name)) return false;
+    }
+    for (int state = 0; state < 4; ++state) {
+        if (!loadPicture("hud-card-" + std::to_string(state))) return false;
+    }
+    for (const char* icon : {"coin", "swatter", "spray", "sticky"}) {
+        for (int gray = 0; gray < 2; ++gray) {
+            if (!loadPicture(std::string("icon-") + icon + "-" + std::to_string(gray))) return false;
+        }
+    }
+    for (int wave = 1; wave <= 3; ++wave) {
+        if (!loadPicture("wave-" + std::to_string(wave))) return false;
+    }
     return true;
 }
 
 void releaseKitchenBackground()
 {
-    for(auto& picture : introPictures) glDeleteTextures(1,&picture.second);
-    introPictures.clear();
+    for (auto& picture : pictureTextures) {
+        glDeleteTextures(1, &picture.second);
+    }
+    pictureTextures.clear();
     glDeleteTextures(1, &kitchenTexture);
     kitchenTexture = 0;
     glDeleteTextures(1, &plateTexture);
@@ -196,36 +222,42 @@ static void drawKitchenImage(GLint transformLocation, GLuint texture,
 void drawPictureTinted(GLint transformLocation, const std::string& name,
                        float x, float y, float width, float height)
 {
-    auto image=introPictures.find(name);
-    if(image!=introPictures.end()) drawKitchenImage(transformLocation,image->second,x,y,width,height,0,0,1,1);
+    auto image = pictureTextures.find(name);
+    if (image != pictureTextures.end()) {
+        drawKitchenImage(transformLocation, image->second, x, y, width, height, 0, 0, 1, 1);
+    }
 }
 
 void drawFontGlyph(GLint transformLocation, int character, float x, float y, float cellSize)
 {
-    auto font=introPictures.find("font");
-    if(font==introPictures.end() || character<0 || character>=128 || cellSize<=0) return;
-    drawKitchenImage(transformLocation,font->second,x+2.5f*cellSize,y-3.5f*cellSize,
-        5*cellSize,7*cellSize,((character%16)*64+12)/1024.0f,
-        ((character/16)*64+4)/512.0f,40.0f/1024,56.0f/512);
+    auto font = pictureTextures.find("font");
+    if (font == pictureTextures.end() || character < 0 || character >= 128 || cellSize <= 0) return;
+
+    // Each atlas cell is 64px square; the glyph occupies its inner 40x56px.
+    float u = ((character % 16) * 64 + 12) / 1024.0f;
+    float v = ((character / 16) * 64 + 4) / 512.0f;
+    drawKitchenImage(transformLocation, font->second, x + 2.5f * cellSize, y - 3.5f * cellSize,
+                     5 * cellSize, 7 * cellSize, u, v, 40.0f / 1024, 56.0f / 512);
 }
 
 void drawIntroImage(GLint transformLocation, GLint colorLocation, const std::string& name,
                     float x, float y, float width, float height)
 {
-    auto picture=introPictures.find(name);
-    if(picture==introPictures.end()) return;
-    glUniform3f(colorLocation,1,1,1);
-    drawKitchenImage(transformLocation,picture->second,x,y,width,height,0,0,1,1);
+    auto picture = pictureTextures.find(name);
+    if (picture == pictureTextures.end()) return;
+    glUniform3f(colorLocation, 1, 1, 1);
+    drawKitchenImage(transformLocation, picture->second, x, y, width, height, 0, 0, 1, 1);
 }
 
 void drawCharacterImage(GLint transformLocation, GLint colorLocation, const std::string& name,
                         float x, float y, float damage)
 {
-    GLint program; glGetIntegerv(GL_CURRENT_PROGRAM,&program);
-    GLint tint=glGetUniformLocation(program,"uDamageTint");
-    glUniform1f(tint,glm::clamp(damage,0.0f,1.0f)*0.75f);
-    drawIntroImage(transformLocation,colorLocation,name,x,y,0.40f,0.40f);
-    glUniform1f(tint,0);
+    GLint program;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &program);
+    GLint tint = glGetUniformLocation(program, "uDamageTint");
+    glUniform1f(tint, glm::clamp(damage, 0.0f, 1.0f) * 0.75f);
+    drawIntroImage(transformLocation, colorLocation, name, x, y, 0.40f, 0.40f);
+    glUniform1f(tint, 0);
 }
 
 void drawKitchenBackground(GLint transformLocation, GLint colorLocation,

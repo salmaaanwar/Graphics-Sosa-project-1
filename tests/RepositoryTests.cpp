@@ -14,9 +14,16 @@
 static int failures = 0;
 static void check(bool condition, const char* message)
 {
-    if (!condition) { std::cerr << "FAILED: " << message << '\n'; failures++; }
+    if (!condition) {
+        std::cerr << "FAILED: " << message << '\n';
+        failures++;
+    }
 }
-static bool near(float a, float b) { return std::fabs(a - b) < 0.001f; }
+
+static bool near(float a, float b)
+{
+    return std::fabs(a - b) < 0.001f;
+}
 static void click(float x, float y)
 {
     getEnvironment().handleMouseButton(GLFW_MOUSE_BUTTON_LEFT, GLFW_PRESS, x, y);
@@ -78,12 +85,14 @@ static void boundariesAndStress()
             check(env.getLaneAtPoint(0, (env.getLaneBottom(lane) + env.getLaneTop(lane + 1)) / 2) == -1,
                   "separator gaps cannot spend coins");
     }
-    // Reproducible mixed input run. Each transaction must preserve conservation
-    // of coins and create either zero or one unit, even around pause/reset.
+    // Keep the seed fixed so a failed purchase sequence can be replayed.
     std::mt19937 random(502);
     int purchases = 0;
     for (int action = 0; action < 10000; action++) {
-        if (action % 100 == 0) { restartGame(); setCollectibles(500); }
+        if (action % 100 == 0) {
+            restartGame();
+            setCollectibles(500);
+        }
         int type = (int)(random() % 5) - 1;
         int lane = (int)(random() % 6) - 1;
         selectPlayerCard(type);

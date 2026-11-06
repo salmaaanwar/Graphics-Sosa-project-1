@@ -11,7 +11,7 @@ bool handleAudioControlsMouse(float x, float y, int action);
 void updateAudioControlsMouse(float x, float y, bool leftDown);
 bool handleAudioControlsKey(int key, int action);
 
-// composite icon drawing functions
+// Geometry arguments are shared with the offline artwork exporter.
 void drawCollectibleIcon(
     GLint transformLocation,
     GLint colorLocation,
@@ -69,7 +69,6 @@ void drawMenuInsect(
     float scale
 );
 
-// unit health bar drawing
 void drawHealthBar(
     GLint transformLocation,
     GLint colorLocation,
@@ -79,7 +78,6 @@ void drawHealthBar(
     int maxHP
 );
 
-// top HUD drawing
 void drawHUD(
     GLint transformLocation,
     GLint colorLocation,
@@ -90,7 +88,6 @@ void drawHUD(
     float mouseY
 );
 
-// menus drawing
 void drawMainMenu(
     GLint transformLocation,
     GLint colorLocation,
@@ -124,7 +121,6 @@ void drawWinLoseMenu(
     float mouseY
 );
 
-// main UI draw and input functions
 void drawUI(
     GLint transformLocation,
     GLint colorLocation,

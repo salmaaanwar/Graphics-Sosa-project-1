@@ -16,6 +16,6 @@ bool isCardUnlocked(int type);
 int getSelectedCard();
 void selectPlayerCard(int type);
 
-// One selected card + one valid lane click = one purchase. Failures spend nothing.
+// Places the selected card in a lane. Invalid placements spend nothing.
 bool deploySelectedPlayer(int lane);
 void resetDeployment();

@@ -55,17 +55,25 @@ void collectEnemyDrop(int value)
 void selectPlayerCard(int type)
 {
     if (!isGameplayRunning()) return;
-    if (!isCardUnlocked(type)) { playSound(SoundId::InvalidPlacement); return; }
+    if (!isCardUnlocked(type)) {
+        playSound(SoundId::InvalidPlacement);
+        return;
+    }
 
     const auto lanes = getEnvironment().getSelectedLanes();
-    if (lanes.empty()) { playSound(SoundId::InvalidPlacement); return; }
+    if (lanes.empty()) {
+        playSound(SoundId::InvalidPlacement);
+        return;
+    }
     playSound(SoundId::SelectCard);
 
     for (int lane : lanes) {
-        if (!isCardUnlocked(type)) { playSound(SoundId::InvalidPlacement); break; }
+        if (!isCardUnlocked(type)) {
+            playSound(SoundId::InvalidPlacement);
+            break;
+        }
 
-        // Deploy into a lane; defense uses its remembered click position.
-        // Failed placements spend nothing.
+        // Each selected lane gets a purchase while the budget allows it.
         selectedCard = type;
         deploySelectedPlayer(lane);
     }
@@ -88,7 +96,10 @@ bool deploySelectedPlayer(int lane)
     }
 
     float x = env.getPlacementX(lane);
-    if (!std::isfinite(x)) { playSound(SoundId::InvalidPlacement); return false; }
+    if (!std::isfinite(x)) {
+        playSound(SoundId::InvalidPlacement);
+        return false;
+    }
 
     // Keep the defense hitbox inside the lane.
     float left = env.getLaneStartX() + PLAYER_HALF_WIDTH;
@@ -114,7 +125,10 @@ bool deploySelectedPlayer(int lane)
     int cost = getPlayerCost(type);
 
     int index = spawnPlayer(type, lane);
-    if (index < 0) { playSound(SoundId::InvalidPlacement); return false; }
+    if (index < 0) {
+        playSound(SoundId::InvalidPlacement);
+        return false;
+    }
 
     if (type == PLAYER_DEFENSE) {
         getPlayers()[index].x = x;

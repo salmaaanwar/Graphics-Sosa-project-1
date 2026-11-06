@@ -76,7 +76,8 @@ void drawButton(
     float baseG,
     float baseB
 ) {
-    if(artworkBackdropOnly) return;
+    // Backdrop exports omit the buttons, which have their own PNGs.
+    if (artworkBackdropOnly) return;
     // outer border
     if (isHovered) {
         glUniform3f(colorLocation, 1.0f, 0.90f, 0.25f);
@@ -465,7 +466,7 @@ void drawMainMenu(
     float mouseX,
     float mouseY
 ) {
-    // The shared kitchen image is drawn behind this menu in main.cpp.
+    // The game draws the kitchen behind this exported menu board.
     // menu board frame
     glUniform3f(colorLocation, 0.85f, 0.72f, 0.45f);
     drawRectangle(transformLocation, 0.0f, 0.06f, 1.56f, 1.44f);

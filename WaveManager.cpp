@@ -78,9 +78,7 @@ void updateWaves(float deltaTime)
     }
 
     // Use each lane in turn before repeating.
-    const int lane =
-        (enemiesSpawned + waveIndex)
-        % getEnvironment().getLaneCount();
+    const int lane = (enemiesSpawned + waveIndex) % getEnvironment().getLaneCount();
     spawnEnemy(enemyType, lane);
     ++enemiesSpawned;
     timeUntilSpawn = SPAWN_INTERVALS[waveIndex];
@@ -93,5 +91,6 @@ void drawWaveStatus(GLint transformLocation, GLint colorLocation)
         return;
     }
 
-    drawIntroImage(transformLocation,colorLocation,"wave-"+std::to_string(waveIndex+1),0,.57f,.88f,.15f);
+    drawIntroImage(transformLocation, colorLocation, "wave-" + std::to_string(waveIndex + 1),
+                   0, .57f, .88f, .15f);
 }
